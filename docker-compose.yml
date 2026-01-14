@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pharmacie-frontend
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - nginx-logs:/var/log/nginx
+    networks:
+      - pharmacie-network
+
+volumes:
+  nginx-logs:
+
+networks:
+  pharmacie-network:
+    driver: bridge
