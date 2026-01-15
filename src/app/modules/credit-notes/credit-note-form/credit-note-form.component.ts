@@ -295,8 +295,11 @@ export class CreditNoteFormComponent implements OnInit {
   }
 
   loadSuppliers(): void {
+    console.log('🔍 MOTIF - Loading suppliers...');
     this.apiService.get<any[]>('/api/suppliers/').subscribe({
       next: (response: any) => {
+        console.log('🔍 MOTIF - Suppliers API response:', response);
+        
         // Handle different response formats
         let suppliers: any[] = [];
         if (response && typeof response === 'object') {
@@ -310,8 +313,11 @@ export class CreditNoteFormComponent implements OnInit {
         }
         
         this.suppliers = suppliers;
+        console.log('🔍 MOTIF - Loaded suppliers:', this.suppliers);
+        console.log('🔍 MOTIF - Suppliers count:', this.suppliers.length);
       },
       error: (error: any) => {
+        console.error('🔍 MOTIF - Error loading suppliers:', error);
         this.suppliers = [];
       }
     });
@@ -385,6 +391,19 @@ export class CreditNoteFormComponent implements OnInit {
       this.invoiceSearch.nativeElement.value = '';
       this.filteredInvoices = [...this.invoices];
     }
+    
+    // Récupérer l'ID de la facture sélectionnée
+    const invoiceId = this.creditNoteForm.get('invoiceId')?.value;
+    if (!invoiceId) return;
+    
+    // Trouver la facture sélectionnée
+    const selectedInvoice = this.invoices.find(inv => inv.id === invoiceId);
+    if (!selectedInvoice || !selectedInvoice.supplier) return;
+    
+    // Mettre à jour le supplier dans le formulaire (si le champ existe)
+    // Note: Le backend attend le supplier ID, mais on peut le déduire de la facture
+    console.log('🔍 MOTIF - Invoice selected:', selectedInvoice);
+    console.log('🔍 MOTIF - Supplier from invoice:', selectedInvoice.supplier);
   }
 
   formatDateForAPI(date: Date): string {
@@ -446,10 +465,21 @@ export class CreditNoteFormComponent implements OnInit {
     const selectedInvoice = this.invoices.find(inv => inv.id === creditNoteData.invoiceId);
     console.log('🔍 MOTIF - Selected invoice:', selectedInvoice);
     
+    // Find supplier by name from the suppliers list
+    let supplierId = null;
+    if (selectedInvoice?.supplier?.name) {
+      const supplier = this.suppliers.find(s => 
+        s.name === selectedInvoice.supplier.name
+      );
+      supplierId = supplier?.id || null;
+      console.log('🔍 MOTIF - Found supplier:', supplier);
+      console.log('🔍 MOTIF - Supplier ID:', supplierId);
+    }
+    
     // Map frontend field names to backend field names
     const payload = {
       invoice: creditNoteData.invoiceId, // UUID de la facture
-      supplier: selectedInvoice?.supplier?.id || null, // ID du fournisseur (backend l'attend encore)
+      supplier: supplierId, // ID du fournisseur trouvé
       credit_note_number: creditNoteData.creditNoteNumber,
       credit_note_date: this.formatDateForAPI(creditNoteData.creditDate),
       amount: creditNoteData.amount,
