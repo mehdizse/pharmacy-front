@@ -101,7 +101,7 @@ import { AuthService } from '../../../core/services/auth.service';
 })
 export class MainLayoutComponent {
   
-  constructor(private authService: AuthService) {}
+  constructor(public authService: AuthService) {}
   
   toggleMobileMenu(): void {
     document.querySelector('app-sidebar')?.classList.toggle('open');
