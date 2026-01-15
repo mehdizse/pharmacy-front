@@ -13,14 +13,14 @@ RUN npm ci --legacy-peer-deps
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build: application with explicit project name and output path
+RUN npm run build -- --configuration=production --output-path=dist
 
 # Stage 2: Serve with Nginx
 FROM nginx:alpine
 
 # Copy built application from builder stage
-COPY --from=builder /app/dist/pharmacie-frontend /usr/share/nginx/html
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
