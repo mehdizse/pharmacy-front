@@ -103,6 +103,7 @@ import { AuthResponse } from '../../../shared/models/auth.model';
                     mat-raised-button 
                     color="primary"
                     class="login-button"
+                    [class.loading]="isLoading"
                     [disabled]="loginForm.invalid || isLoading">
               <mat-icon *ngIf="!isLoading">login</mat-icon>
               <mat-spinner *ngIf="isLoading" 
@@ -262,6 +263,23 @@ import { AuthResponse } from '../../../shared/models/auth.model';
       stroke: white !important;
     }
 
+    .white-spinner svg {
+      stroke: white !important;
+    }
+
+    .white-spinner svg circle {
+      stroke: white !important;
+      stroke-width: 3 !important;
+    }
+
+    .login-button .mat-mdc-progress-spinner {
+      --mdc-circular-progress-active-indicator-color: white !important;
+    }
+
+    .login-button .mat-mdc-progress-spinner svg {
+      color: white !important;
+    }
+
     .form-options {
       display: flex;
       justify-content: space-between;
@@ -299,6 +317,10 @@ import { AuthResponse } from '../../../shared/models/auth.model';
       gap: 8px;
       transition: all 0.3s ease;
       box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    .login-button.loading {
+      background: linear-gradient(135deg, #4a5fc1 0%, #5a4a8a 100%);
     }
 
     .login-button:hover:not(:disabled) {
