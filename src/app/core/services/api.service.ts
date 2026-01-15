@@ -9,7 +9,7 @@ import { environment } from '@environments/environment';
   providedIn: 'root'
 })
 export class ApiService {
-  private baseUrl = 'http://localhost:8000';
+  private baseUrl = environment.apiUrl;
   private loadingSubject = new BehaviorSubject<boolean>(false);
   public loading$ = this.loadingSubject.asObservable();
 
