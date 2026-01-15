@@ -50,7 +50,7 @@ import { AuthService } from '../../../core/services/auth.service';
       flex: 1;
       margin-left: 260px;
       min-height: 100vh;
-      background: #f5f7fa;
+      background: var(--background-color);
       transition: margin-left 0.3s ease;
     }
 

@@ -68,15 +68,16 @@ export interface MenuItem {
     .sidebar-container {
       width: 260px;
       height: 100vh;
-      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-      color: white;
+      background: var(--sidebar-background);
+      color: var(--text-primary);
       display: flex;
       flex-direction: column;
       position: fixed;
       left: 0;
       top: 0;
       z-index: 1000;
-      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+      border-right: 1px solid var(--border-light);
     }
 
     .logo-section {
@@ -84,7 +85,7 @@ export interface MenuItem {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid var(--border-light);
     }
 
     .logo-icon {
@@ -94,15 +95,16 @@ export interface MenuItem {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255,255,255,0.1);
+      background: var(--primary-soft);
       border-radius: 8px;
+      color: var(--primary-color);
     }
 
     .logo-text {
       font-size: 1.25rem;
       font-weight: 700;
       margin: 0;
-      color: white;
+      color: var(--text-primary);
     }
 
     .nav-section {
@@ -126,33 +128,24 @@ export interface MenuItem {
       align-items: center;
       gap: 0.75rem;
       padding: 0.875rem 1.5rem;
-      color: rgba(255,255,255,0.8);
+      color: var(--text-secondary);
       text-decoration: none;
-      transition: all 0.3s ease;
+      transition: none;
       position: relative;
       font-weight: 500;
     }
 
     .nav-link:hover {
-      background: rgba(255,255,255,0.1);
-      color: white;
+      background: var(--primary-soft);
+      color: var(--primary-color);
     }
 
     .nav-link.active {
-      background: rgba(255,255,255,0.15);
-      color: white;
-      border-left: 4px solid #4CAF50;
+      background: #F1F5F9;
+      color: var(--primary-color);
+      border-left: 3px solid var(--primary-color);
     }
 
-    .nav-link.active::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: #4CAF50;
-    }
 
     .nav-link.disabled {
       opacity: 0.5;
@@ -171,7 +164,7 @@ export interface MenuItem {
 
     .user-section {
       padding: 1rem 1.5rem;
-      border-top: 1px solid rgba(255,255,255,0.1);
+      border-top: 1px solid var(--border-light);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -187,11 +180,12 @@ export interface MenuItem {
     .user-avatar {
       width: 36px;
       height: 36px;
-      background: rgba(255,255,255,0.2);
+      background: var(--primary-soft);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
+      color: var(--primary-color);
     }
 
     .user-details {
@@ -203,7 +197,7 @@ export interface MenuItem {
       margin: 0;
       font-size: 0.9rem;
       font-weight: 600;
-      color: white;
+      color: var(--text-primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -212,19 +206,19 @@ export interface MenuItem {
     .user-role {
       margin: 0;
       font-size: 0.75rem;
-      color: rgba(255,255,255,0.7);
+      color: var(--text-secondary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .logout-btn {
-      color: rgba(255,255,255,0.8);
+      color: var(--text-secondary);
     }
 
     .logout-btn:hover {
-      color: white;
-      background: rgba(255,255,255,0.1);
+      color: var(--primary-color);
+      background: var(--primary-soft);
     }
 
     /* Responsive */

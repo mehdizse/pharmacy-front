@@ -5,15 +5,17 @@
 
 /* Styles globaux pour l'application */
 :root {
-  --primary-color: #0284c7;
-  --secondary-color: #64748b;
-  --success-color: #10b981;
-  --warning-color: #f59e0b;
-  --error-color: #ef4444;
-  --background-color: #f8fafc;
-  --surface-color: #ffffff;
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
+  --primary-color: #2563EB;
+  --primary-soft: #DBEAFE;
+  --success-color: #16A34A;
+  --warning-color: #F59E0B;
+  --danger-color: #DC2626;
+  --background-color: #F8FAFC;
+  --surface-color: #FFFFFF;
+  --sidebar-background: #FFFFFF;
+  --border-light: #E5E7EB;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
 }
 
 * {
@@ -29,8 +31,8 @@ html, body {
 }
 
 .mat-card {
-  border-radius: 12px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04) !important;
 }
 
 .mat-button, .mat-raised-button, .mat-stroked-button {
@@ -51,22 +53,25 @@ html, body {
 }
 
 .kpi-card {
-  background: linear-gradient(135deg, var(--surface-color) 0%, #f1f5f9 100%);
+  background: var(--surface-color);
   border-left: 4px solid var(--primary-color);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: none;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
 }
 
 .kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  transform: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
 }
 
 .page-header {
-  background: linear-gradient(135deg, var(--primary-color) 0%, #0ea5e9 100%);
-  color: white;
+  background: var(--surface-color);
+  color: var(--text-primary);
   padding: 2rem;
   margin: -1rem -1rem 2rem -1rem;
-  border-radius: 0 0 1rem 1rem;
+  border-radius: 0 0 14px 14px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .status-badge {

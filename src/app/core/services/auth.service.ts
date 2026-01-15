@@ -5,6 +5,7 @@ import { map } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { User, AuthResponse, LoginRequest, RegisterRequest, UserRole } from '../../shared/models/auth.model';
 import { ApiResponse } from '../../shared/models/api.model';
+import { ConfirmationService } from './confirmation.service';
 
 @Injectable({
   providedIn: 'root'
@@ -18,7 +19,8 @@ export class AuthService {
 
   constructor(
     private apiService: ApiService,
-    private router: Router
+    private router: Router,
+    private confirmationService: ConfirmationService
   ) {
     this.checkAuthStatus();
   }
@@ -51,11 +53,15 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_info');
-    this.currentUserSubject.next(null);
-    this.isAuthenticatedSubject.next(false);
-    this.router.navigate(['/login']);
+    this.confirmationService.confirmLogout().subscribe(confirmed => {
+      if (confirmed) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_info');
+        this.currentUserSubject.next(null);
+        this.isAuthenticatedSubject.next(false);
+        this.router.navigate(['/auth']);
+      }
+    });
   }
 
   refreshToken(): Observable<AuthResponse> {

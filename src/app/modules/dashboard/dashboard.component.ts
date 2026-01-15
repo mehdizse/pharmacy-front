@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatChipsModule } from '@angular/material/chips';
 import { RouterModule } from '@angular/router';
 
 import { Chart, registerables } from 'chart.js';
@@ -28,6 +29,7 @@ import { DateService } from '../../core/services/date.service';
     MatSelectModule,
     MatFormFieldModule,
     MatInputModule,
+    MatChipsModule,
     RouterModule
   ],
   template: `
@@ -36,20 +38,39 @@ import { DateService } from '../../core/services/date.service';
       <div class="dashboard-header">
         <div>
           <h1 class="dashboard-title">Tableau de bord</h1>
-          <p class="dashboard-subtitle">Vue d'ensemble de votre activité</p>
+          <div class="period-info">
+            <mat-icon class="period-icon">calendar_today</mat-icon>
+            <span class="period-text">Période: <strong>{{ getCurrentPeriod() }}</strong></span>
+            <span class="period-badge">Actuelle</span>
+          </div>
         </div>
-        <div class="header-actions">
-          <mat-icon class="header-icon">today</mat-icon>
-          <span class="current-date">{{ getCurrentDate() }}</span>
-        </div>
-      </div>
+              </div>
 
       <!-- Filters -->
       <div class="filters-section">
+        <div class="filters-header">
+          <h2 class="filters-title">Filtres</h2>
+          <button mat-button class="reset-btn" (click)="resetFilters()" [class.hidden]="!hasActiveFilters()">
+            <mat-icon>refresh</mat-icon>
+            Réinitialiser
+          </button>
+        </div>
+        
         <div class="filters-container">
+          <mat-form-field appearance="outline" class="filter-field period-field">
+            <mat-label>Période</mat-label>
+            <mat-select (selectionChange)="onPeriodQuickChange($event.value)" [value]="getQuickPeriod()">
+              <mat-option value="current">Ce mois</mat-option>
+              <mat-option value="last">Mois dernier</mat-option>
+              <mat-option value="quarter">Ce trimestre</mat-option>
+              <mat-option value="year">Cette année</mat-option>
+              <mat-option value="custom">Personnalisé</mat-option>
+            </mat-select>
+          </mat-form-field>
+
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>Mois</mat-label>
-            <mat-select (selectionChange)="onMonthFilterChange($event.value)" placeholder="Tous les mois">
+            <mat-select (selectionChange)="onMonthFilterChange($event.value)" [value]="selectedMonth">
               <mat-option value="">Tous les mois</mat-option>
               <mat-option *ngFor="let month of getMonths()" [value]="month.value">
                 {{ month.label }}
@@ -59,7 +80,7 @@ import { DateService } from '../../core/services/date.service';
 
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>Année</mat-label>
-            <mat-select (selectionChange)="onYearFilterChange($event.value)" placeholder="Toutes les années">
+            <mat-select (selectionChange)="onYearFilterChange($event.value)" [value]="selectedYear">
               <mat-option value="">Toutes les années</mat-option>
               <mat-option *ngFor="let year of getYears()" [value]="year">
                 {{ year }}
@@ -67,85 +88,84 @@ import { DateService } from '../../core/services/date.service';
             </mat-select>
           </mat-form-field>
 
-          <button mat-flat-button color="primary" (click)="resetFilters()" class="reset-btn">
-            <mat-icon>refresh</mat-icon>
-            Réinitialiser
-          </button>
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Statut</mat-label>
+            <mat-select (selectionChange)="onStatusFilterChange($event.value)" [value]="selectedStatus">
+              <mat-option value="">Tous les statuts</mat-option>
+              <mat-option value="paid">Payées</mat-option>
+              <mat-option value="pending">En attente</mat-option>
+              <mat-option value="overdue">En retard</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        
+        <!-- Filtres actifs -->
+        <div class="active-filters" [class.hidden]="!hasActiveFilters()">
+          <span class="active-filters-label">Filtres actifs:</span>
+          <div class="filter-tags">
+            <mat-chip *ngIf="selectedMonth" class="filter-tag" (removed)="clearMonthFilter()">
+              {{ getMonthLabel(selectedMonth) }}
+              <mat-icon matChipRemove>close</mat-icon>
+            </mat-chip>
+            <mat-chip *ngIf="selectedYear" class="filter-tag" (removed)="clearYearFilter()">
+              {{ selectedYear }}
+              <mat-icon matChipRemove>close</mat-icon>
+            </mat-chip>
+            <mat-chip *ngIf="selectedStatus" class="filter-tag" (removed)="clearStatusFilter()">
+              {{ getStatusLabel(selectedStatus) }}
+              <mat-icon matChipRemove>close</mat-icon>
+            </mat-chip>
+          </div>
         </div>
       </div>
 
       <!-- KPI Cards -->
       <div class="kpi-grid">
-        <div class="kpi-card primary">
+        <div class="kpi-card">
           <div class="kpi-content">
-            <div class="kpi-icon">
-              <mat-icon>receipt</mat-icon>
-            </div>
-            <div class="kpi-info">
-              <h3 class="kpi-value">{{ getKpiValue('invoice_count') }}</h3>
-              <p class="kpi-label">Factures {{ getKpiPeriod() }}</p>
+            <div class="kpi-header">
+              <div class="kpi-main">
+                <h3 class="kpi-value">{{ getKpiValue('invoice_count') }}</h3>
+                <p class="kpi-label">Factures</p>
+              </div>
+              <mat-icon class="kpi-icon">receipt</mat-icon>
             </div>
           </div>
         </div>
 
-        <div class="kpi-card success">
+        <div class="kpi-card">
           <div class="kpi-content">
-            <div class="kpi-icon">
-              <mat-icon>business</mat-icon>
-            </div>
-            <div class="kpi-info">
-              <h3 class="kpi-value">{{ getKpiValue('total_suppliers') }}</h3>
-              <p class="kpi-label">Fournisseurs</p>
+            <div class="kpi-header">
+              <div class="kpi-main">
+                <h3 class="kpi-value">{{ getKpiValue('total_suppliers') }}</h3>
+                <p class="kpi-label">Fournisseurs</p>
+              </div>
+              <mat-icon class="kpi-icon">business</mat-icon>
             </div>
           </div>
         </div>
 
-        <div class="kpi-card warning">
+        <div class="kpi-card">
           <div class="kpi-content">
-            <div class="kpi-icon">
-              <mat-icon>assignment_return</mat-icon>
-            </div>
-            <div class="kpi-info">
-              <h3 class="kpi-value">{{ getKpiValue('credit_note_count') }}</h3>
-              <p class="kpi-label">Avoirs {{ getKpiPeriod() }}</p>
+            <div class="kpi-header">
+              <div class="kpi-main">
+                <h3 class="kpi-value">{{ getKpiValue('credit_note_count') }}</h3>
+                <p class="kpi-label">Avoirs</p>
+              </div>
+              <mat-icon class="kpi-icon">assignment_return</mat-icon>
             </div>
           </div>
         </div>
 
-        <div class="kpi-card info">
+        <div class="kpi-card kpi-primary">
           <div class="kpi-content">
-            <div class="kpi-icon">
-              <mat-icon>account_balance_wallet</mat-icon>
+            <div class="kpi-header">
+              <div class="kpi-main">
+                <h3 class="kpi-value">{{ formatCurrency(getKpiValue('net_amount')) }}</h3>
+                <p class="kpi-label">Net à payer</p>
+              </div>
+              <mat-icon class="kpi-icon">account_balance_wallet</mat-icon>
             </div>
-            <div class="kpi-info">
-              <h3 class="kpi-value">{{ formatCurrency(getKpiValue('net_amount')) }}</h3>
-              <p class="kpi-label">Net à payer</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Charts Section -->
-      <div class="charts-grid">
-        <!-- Monthly Evolution Chart -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <h2>Évolution mensuelle</h2>
-            <mat-icon class="chart-icon">trending_up</mat-icon>
-          </div>
-          <div class="chart-container">
-            <canvas id="monthlyChart"></canvas>
-          </div>
-        </div>
-
-        <!-- Supplier Breakdown Chart -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <h2>Répartition fournisseurs</h2>
-            <mat-icon class="chart-icon">pie_chart</mat-icon>
-          </div>
-          <div class="chart-container">
-            <canvas id="supplierChart"></canvas>
           </div>
         </div>
       </div>
@@ -153,316 +173,641 @@ import { DateService } from '../../core/services/date.service';
       <!-- Recent Invoices Table -->
       <div class="table-card">
         <div class="table-header">
-          <h2>Factures récentes</h2>
-          <button mat-flat-button color="primary" routerLink="/invoices/new">
+          <div class="table-title-section">
+            <h2>Factures récentes</h2>
+            <span class="table-count">{{ filteredInvoices.length }} facture{{ filteredInvoices.length > 1 ? 's' : '' }}</span>
+          </div>
+          <button mat-flat-button color="primary" routerLink="/invoices/new" class="new-invoice-btn">
             <mat-icon>add</mat-icon>
             Nouvelle facture
           </button>
         </div>
         <div class="table-container">
-          <table class="invoices-table">
-            <thead>
-              <tr>
-                <th>N° Facture</th>
-                <th>Fournisseur</th>
-                <th>Montant</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let invoice of filteredInvoices">
-                <td>{{ invoice.invoice_number }}</td>
-                <td>{{ invoice.supplier_name }}</td>
-                <td class="amount">{{ formatCurrency(invoice.net_to_pay) }}</td>
-                <td>{{ formatDate(invoice.created_at) }}</td>
-                <td>
-                  <button mat-icon-button 
-                          color="primary" 
-                          [routerLink]="['/invoices', invoice.id]"
-                          matTooltip="Voir les détails">
-                    <mat-icon>visibility</mat-icon>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="table-wrapper">
+            <table class="invoices-table">
+              <thead>
+                <tr>
+                  <th class="col-number">N° Facture</th>
+                  <th class="col-supplier">Fournisseur</th>
+                  <th class="col-amount">Montant</th>
+                  <th class="col-date">Date</th>
+                  <th class="col-status">Statut</th>
+                  <th class="col-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let invoice of filteredInvoices" class="table-row">
+                  <td class="col-number">
+                    <div class="invoice-number">
+                      <mat-icon class="invoice-icon">{{ invoice.invoice_number?.startsWith('AV') ? 'assignment_return' : 'receipt' }}</mat-icon>
+                      <span class="invoice-text">{{ invoice.invoice_number }}</span>
+                    </div>
+                  </td>
+                  <td class="col-supplier">
+                    <div class="supplier-info">
+                      <span class="supplier-name">{{ invoice.supplier_name }}</span>
+                    </div>
+                  </td>
+                  <td class="col-amount">
+                    <span class="amount" [ngClass]="{ 'amount-credit': invoice.invoice_number?.startsWith('AV') }">
+                      {{ invoice.invoice_number?.startsWith('AV') ? '-' : '' }}{{ formatCurrency(invoice.net_to_pay) }}
+                    </span>
+                  </td>
+                  <td class="col-date">
+                    <div class="date-info">
+                      <span class="date-text">{{ formatDate(invoice.invoice_date || invoice.created_at) }}</span>
+                    </div>
+                  </td>
+                  <td class="col-status">
+                    <span class="status-badge" [ngClass]="getStatusClass(invoice)">
+                      {{ getStatusText(invoice) }}
+                    </span>
+                  </td>
+                  <td class="col-actions">
+                    <div class="action-buttons">
+                      <button mat-icon-button 
+                              color="primary" 
+                              [routerLink]="['/invoices', invoice.id]"
+                              matTooltip="Voir les détails"
+                              class="action-btn">
+                        <mat-icon>visibility</mat-icon>
+                      </button>
+                      <button mat-icon-button 
+                              color="accent" 
+                              [routerLink]="['/invoices', invoice.id, 'edit']"
+                              matTooltip="Modifier"
+                              class="action-btn">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           
-          <div class="text-center py-8" *ngIf="filteredInvoices.length === 0 && !isLoading">
-            <mat-icon class="text-gray-400 text-6xl">receipt</mat-icon>
-            <p class="text-gray-600 mt-4">Aucune facture trouvée pour les filtres sélectionnés</p>
+          <div class="empty-state" *ngIf="filteredInvoices.length === 0 && !isLoading">
+            <div class="empty-content">
+              <mat-icon class="empty-icon">receipt_long</mat-icon>
+              <h3 class="empty-title">Aucune facture trouvée</h3>
+              <p class="empty-description">
+                {{ selectedMonth || selectedYear ? 'Essayez de modifier les filtres pour voir plus de résultats.' : 'Commencez par créer votre première facture.' }}
+              </p>
+              <button mat-flat-button 
+                      color="primary" 
+                      routerLink="/invoices/new"
+                      *ngIf="!selectedMonth && !selectedYear"
+                      class="empty-action">
+                <mat-icon>add</mat-icon>
+                Créer une facture
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Loading State -->
       <div *ngIf="isLoading" class="loading-overlay">
-        <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+        <div class="loading-spinner">
+          <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+          <span class="loading-text">Chargement des données...</span>
+        </div>
       </div>
     </div>
   `,
   styles: [`
     .dashboard-container {
       padding: 2rem;
-      max-width: 1400px;
+      max-width: 1280px;
       margin: 0 auto;
     }
 
     .dashboard-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       margin-bottom: 2rem;
       padding: 1.5rem;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background: var(--surface-color);
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+      border: 1px solid var(--border-light);
     }
 
     .dashboard-title {
       font-size: 2rem;
-      font-weight: 700;
-      color: #1a202c;
-      margin: 0 0 0.5rem 0;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 0.75rem 0;
     }
 
-    .dashboard-subtitle {
-      color: #718096;
-      margin: 0;
+    .period-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .period-icon {
       font-size: 1rem;
+      color: var(--text-secondary);
+    }
+
+    .period-text {
+      font-weight: 400;
+    }
+
+    .period-text strong {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .period-badge {
+      background: var(--primary-soft);
+      color: var(--primary-color);
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
     }
 
     .header-actions {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      color: #4a5568;
     }
 
-    .header-icon {
-      font-size: 1.5rem;
-      color: #4a5568;
+    .export-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-color: var(--border-light);
+      color: var(--text-primary);
     }
 
-    .current-date {
-      font-weight: 500;
-      color: #4a5568;
+    .export-btn:hover {
+      background: var(--background-color);
+    }
+
+    .new-invoice-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     /* Styles pour les filtres */
     .filters-section {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background: var(--surface-color);
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
       padding: 1.5rem;
       margin-bottom: 2rem;
+      border: 1px solid var(--border-light);
+    }
+
+    .filters-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .filters-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
     }
 
     .filters-container {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
       gap: 1rem;
       align-items: end;
-      flex-wrap: wrap;
     }
 
     .filter-field {
-      min-width: 200px;
-      flex: 1;
+      width: 100%;
+    }
+
+    .period-field {
+      grid-column: 1;
     }
 
     .reset-btn {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      height: 56px;
-      padding: 0 1.5rem;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .reset-btn:hover {
+      color: var(--primary-color);
+      background: var(--primary-soft);
+    }
+
+    .reset-btn.hidden {
+      display: none;
+    }
+
+    .active-filters {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .active-filters.hidden {
+      display: none;
+    }
+
+    .active-filters-label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .filter-tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-tag {
+      background: var(--primary-soft);
+      color: var(--primary-color);
+      font-size: 0.75rem;
+      font-weight: 500;
     }
 
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
       margin-bottom: 2rem;
     }
 
     .kpi-card {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      transition: all 0.3s ease;
-      border-left: 4px solid transparent;
+      background: #FFFFFF;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      border: 1px solid #E5E7EB;
+      height: 80px;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
     }
 
     .kpi-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-color: var(--primary-color);
     }
 
-    .kpi-card.primary {
-      border-left-color: #3182ce;
+    .kpi-card:hover::before {
+      transform: translateX(100%);
     }
 
-    .kpi-card.success {
-      border-left-color: #38a169;
+    .kpi-primary {
+      border-bottom: 2px solid #E5E7EB;
     }
 
-    .kpi-card.warning {
-      border-left-color: #d69e2e;
+    .kpi-primary:hover {
+      border-bottom-color: var(--primary-color);
     }
 
-    .kpi-card.info {
-      border-left-color: #3182ce;
-    }
 
     .kpi-content {
       display: flex;
-      align-items: center;
-      gap: 1rem;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
     }
 
-    .kpi-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 12px;
+    .kpi-header {
       display: flex;
-      align-items: center;
-      justify-content: center;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
     }
 
-    .kpi-card.primary .kpi-icon {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-
-    .kpi-card.success .kpi-icon {
-      background: linear-gradient(135deg, #38a169 0%, #48bb78 100%);
-      color: white;
-    }
-
-    .kpi-card.warning .kpi-icon {
-      background: linear-gradient(135deg, #d69e2e 0%, #f6ad55 100%);
-      color: white;
-    }
-
-    .kpi-card.info .kpi-icon {
-      background: linear-gradient(135deg, #3182ce 0%, #4299e1 100%);
-      color: white;
-    }
-
-    .kpi-icon mat-icon {
-      font-size: 1.5rem;
-      width: 28px;
-      height: 28px;
-    }
-
-    .kpi-info {
+    .kpi-main {
       flex: 1;
     }
 
+    .kpi-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: #9CA3AF;
+      opacity: 1;
+    }
+
     .kpi-value {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #1a202c;
-      margin: 0 0 0.25rem 0;
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 2px 0;
+      line-height: 1.2;
+    }
+
+    .kpi-primary .kpi-value {
+      color: #111827;
+      font-weight: 600;
     }
 
     .kpi-label {
-      color: #718096;
+      color: var(--text-primary);
       margin: 0;
-      font-size: 0.875rem;
-      font-weight: 500;
+      font-size: 0.8125rem;
+      font-weight: 400;
+      opacity: 0.65;
+      line-height: 1.3;
     }
 
-    .charts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
-    .chart-card {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .chart-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-    }
-
-    .chart-header h2 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #1a202c;
-      margin: 0;
-    }
-
-    .chart-icon {
-      color: #4a5568;
-    }
-
-    .chart-container {
-      height: 300px;
-      position: relative;
+    .kpi-primary .kpi-label {
+      opacity: 0.6;
     }
 
     .table-card {
-      background: white;
-      border-radius: 12px;
+      background: var(--surface-color);
+      border-radius: 14px;
       padding: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+      border: 1px solid var(--border-light);
     }
 
     .table-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       margin-bottom: 1.5rem;
     }
 
-    .table-header h2 {
+    .table-title-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .table-title-section h2 {
       font-size: 1.25rem;
       font-weight: 600;
-      color: #1a202c;
+      color: var(--text-primary);
       margin: 0;
     }
 
-    .table-container {
-      overflow-x: auto;
+    .table-count {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .table-wrapper {
+      border-radius: 8px;
+      border: 1px solid var(--border-light);
+      overflow: hidden;
+      background: #FFFFFF;
     }
 
     .invoices-table {
       width: 100%;
       border-collapse: collapse;
+      table-layout: fixed;
     }
 
     .invoices-table th {
-      background: #f7fafc;
+      background: var(--background-color);
       padding: 1rem;
-      text-align: left;
+      text-align: center;
       font-weight: 600;
-      color: #4a5568;
-      border-bottom: 2px solid #e2e8f0;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-light);
+      font-size: 0.875rem;
+      white-space: nowrap;
     }
 
     .invoices-table td {
-      padding: 1rem;
-      border-bottom: 1px solid #e2e8f0;
-      color: #2d3748;
+      padding: 0.75rem 0.5rem;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text-primary);
+      vertical-align: middle;
+      text-align: center;
     }
 
-    .invoices-table tr:hover {
-      background: #f7fafc;
+    .table-row {
+      transition: background-color 0.15s ease;
+    }
+
+    .table-row:hover {
+      background: var(--background-color);
+    }
+
+    .table-row:last-child td {
+      border-bottom: none;
+    }
+
+    /* Colonnes spécifiques */
+    .col-number {
+      width: 16.66%;
+      text-align: center;
+    }
+
+    .col-supplier {
+      width: 16.66%;
+      text-align: center;
+    }
+
+    .col-amount {
+      width: 16.66%;
+      text-align: center;
+    }
+
+    .col-date {
+      width: 16.66%;
+      text-align: center;
+    }
+
+    .col-status {
+      width: 16.66%;
+      text-align: center;
+    }
+
+    .col-actions {
+      width: 16.70%;
+      text-align: center;
+    }
+
+    /* Contenu des cellules */
+    .invoice-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .invoice-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: var(--text-secondary);
+    }
+
+    .invoice-text {
+      font-family: 'Inter', monospace;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .supplier-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .supplier-name {
+      font-weight: 500;
+      color: var(--text-primary);
     }
 
     .amount {
       font-weight: 600;
-      color: #2d3748;
+      font-family: 'Inter', monospace;
+    }
+
+    .amount-credit {
+      color: #DC2626;
+    }
+
+    .date-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .date-text {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .date-relative {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    /* Badges de statut */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .status-paid {
+      background: #DCFCE7;
+      color: #16A34A;
+    }
+
+    .status-pending {
+      background: #FEF3C7;
+      color: #D97706;
+    }
+
+    .status-overdue {
+      background: #FEE2E2;
+      color: #DC2626;
+    }
+
+    .status-credit {
+      background: #E0E7FF;
+      color: #4F46E5;
+    }
+
+    /* Actions */
+    .action-buttons {
+      display: flex;
+      gap: 0.25rem;
+      justify-content: center;
+    }
+
+    .action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Empty state */
+    .empty-state {
+      padding: 3rem 2rem;
+      text-align: center;
+    }
+
+    .empty-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .empty-icon {
+      font-size: 4rem;
+      width: 4rem;
+      height: 4rem;
+      color: var(--text-secondary);
+      opacity: 0.5;
+    }
+
+    .empty-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .empty-description {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .empty-action {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
     }
 
     .loading-overlay {
@@ -476,6 +821,43 @@ import { DateService } from '../../core/services/date.service';
       align-items: center;
       justify-content: center;
       z-index: 1000;
+      backdrop-filter: blur(2px);
+    }
+
+    .loading-spinner {
+      background: #FFFFFF;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .loading-text {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* Animations pour les badges */
+    @keyframes badgeGlow {
+      0%, 100% {
+        box-shadow: 0 0 0 0 currentColor;
+      }
+      50% {
+        box-shadow: 0 0 0 4px rgba(0,0,0,0.1);
+      }
+    }
+
+    .status-badge {
+      animation: badgeGlow 3s ease-in-out infinite;
+    }
+
+    /* Amélioration des transitions */
+    * {
+      transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     }
 
     /* Responsive */
@@ -506,11 +888,8 @@ import { DateService } from '../../core/services/date.service';
       }
 
       .kpi-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .charts-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
       }
 
       .table-header {
@@ -537,6 +916,8 @@ export class DashboardComponent implements OnInit {
   // Propriétés pour les filtres
   selectedMonth: string = '';
   selectedYear: string = '';
+  selectedStatus: string = '';
+  quickPeriod: string = 'current';
   filteredInvoices: any[] = [];
   allInvoices: any[] = []; // Toutes les factures pour le filtrage
   allCreditNotes: any[] = []; // Tous les avoirs pour le filtrage
@@ -553,7 +934,8 @@ export class DashboardComponent implements OnInit {
 
   constructor(
     private apiService: ApiService,
-    private dateService: DateService
+    private dateService: DateService,
+    private cdr: ChangeDetectorRef
   ) {
     // Initialiser le locale français pour les dates
     this.dateService.initFrenchLocale();
@@ -577,6 +959,17 @@ export class DashboardComponent implements OnInit {
       next: (response: ApiResponse<DashboardKPI>) => {
         // Le backend envoie les données directement, pas enveloppées dans response.data
         this.kpis = response.data || response;
+        
+        // Mapper les factures récentes pour être cohérent avec le tableau factures
+        if (this.kpis?.recent_invoices) {
+          this.kpis.recent_invoices = this.kpis.recent_invoices.map((invoice: any) => ({
+            ...invoice,
+            // S'assurer que les champs sont mappés correctement
+            invoice_date: invoice.invoice_date || invoice.created_at,
+            status: invoice.status || invoice.payment_status,
+            supplier_name: invoice.supplier_name || invoice.supplier?.name || invoice.supplier
+          }));
+        }
         
         // Réinitialiser les caches quand les données changent
         this._months = [];
@@ -609,10 +1002,17 @@ export class DashboardComponent implements OnInit {
           }
         }
         
-        this.allInvoices = invoices;
+        // Mapper les factures pour être cohérent avec le tableau factures
+        this.allInvoices = invoices.map((invoice: any) => ({
+          ...invoice,
+          // S'assurer que les champs sont mappés correctement
+          invoice_date: invoice.invoice_date || invoice.created_at,
+          status: invoice.status || invoice.payment_status,
+          supplier_name: invoice.supplier_name || invoice.supplier?.name || invoice.supplier
+        }));
         
         // Appliquer les filtres si nécessaire
-        if (this.selectedMonth || this.selectedYear) {
+        if (this.selectedMonth || this.selectedYear || this.selectedStatus) {
           this.applyFilters();
         }
       },
@@ -637,10 +1037,17 @@ export class DashboardComponent implements OnInit {
           }
         }
         
-        this.allCreditNotes = creditNotes;
+        // Mapper les avoirs pour être cohérents
+        this.allCreditNotes = creditNotes.map((creditNote: any) => ({
+          ...creditNote,
+          // S'assurer que les champs sont mappés correctement
+          credit_note_date: creditNote.credit_note_date || creditNote.created_at,
+          status: creditNote.status || creditNote.payment_status,
+          supplier_name: creditNote.supplier_name || creditNote.supplier?.name || creditNote.supplier
+        }));
         
         // Appliquer les filtres si nécessaire
-        if (this.selectedMonth || this.selectedYear) {
+        if (this.selectedMonth || this.selectedYear || this.selectedStatus) {
           this.applyFilters();
         }
       },
@@ -685,6 +1092,9 @@ export class DashboardComponent implements OnInit {
   }
 
   formatCurrency(amount: number): string {
+    if (isNaN(amount) || amount === null || amount === undefined) {
+      return '0,00 DA';
+    }
     return new Intl.NumberFormat('fr-DZ', {
       style: 'currency',
       currency: 'DZD',
@@ -695,14 +1105,16 @@ export class DashboardComponent implements OnInit {
 
   // Méthodes pour les KPIs dynamiques
   getKpiValue(key: string): any {
+    let value = 0;
+    
     // Pour total_suppliers, toujours utiliser les données globales
     if (key === 'total_suppliers') {
       if (this.dynamicKpis) {
-        return (this.dynamicKpis.overview as any)?.total_suppliers || 0;
+        value = (this.dynamicKpis.overview as any)?.total_suppliers || 0;
       } else if (this.kpis) {
-        return (this.kpis.overview as any)?.total_suppliers || 0;
+        value = (this.kpis.overview as any)?.total_suppliers || 0;
       }
-      return 0;
+      return isNaN(value) ? 0 : value;
     }
     
     // Si des filtres sont appliqués, utiliser les KPIs dynamiques
@@ -720,100 +1132,93 @@ export class DashboardComponent implements OnInit {
       
       // Si le backend n'a pas mis à jour les données, calculer depuis le tableau
       if (filterInfo?.month !== backendMonth || filterInfo?.year !== backendYear) {
-        return this.calculateKpiFromFilteredInvoices(key);
+        value = this.calculateKpiFromFilteredInvoices(key);
+      } else {
+        // Sinon utiliser les données du backend
+        value = currentMonthData?.[key] || 0;
       }
-      
-      // Sinon utiliser les données du backend
-      return currentMonthData?.[key] || 0;
+    } else {
+      // Sinon, utiliser les KPIs du mois courant par défaut
+      if (!this.kpis) return 0;
+      value = (this.kpis.overview as any)?.current_month?.[key] || 0;
     }
     
-    // Sinon, utiliser les KPIs du mois courant par défaut
-    if (!this.kpis) return 0;
-    return (this.kpis.overview as any)?.current_month?.[key] || 0;
+    return isNaN(value) ? 0 : value;
   }
 
   // Calculer les KPIs depuis les factures filtrées
   calculateKpiFromFilteredInvoices(key: string): any {
+    let value = 0;
+    
     switch (key) {
       case 'invoice_count':
         // Compter seulement les factures (pas les avoirs)
-        return this.filteredInvoices.filter(item => {
+        value = this.filteredInvoices.filter(item => {
           return !(item.type === 'credit_note' || 
                    item.is_credit_note || 
                    item.invoice_type === 'credit_note' ||
                    item.credit_note_number ||
                    (item.invoice_number && item.invoice_number.startsWith('AV')));
         }).length;
+        break;
       
       case 'credit_note_count':
         // Compter seulement les avoirs
-        const creditNotes = this.filteredInvoices.filter(item => {
+        value = this.filteredInvoices.filter(item => {
           return item.type === 'credit_note' || 
                  item.is_credit_note || 
                  item.invoice_type === 'credit_note' ||
                  item.credit_note_number ||
                  (item.invoice_number && item.invoice_number.startsWith('AV'));
-        });
-        return creditNotes.length;
+        }).length;
+        break;
       
       case 'total_invoices':
         // Somme des factures seulement
-        const invoiceTotal = this.filteredInvoices
-          .filter(item => {
-            return !(item.type === 'credit_note' || 
-                     item.is_credit_note || 
-                     item.invoice_type === 'credit_note' ||
-                     item.credit_note_number ||
-                     (item.invoice_number && item.invoice_number.startsWith('AV')));
-          })
+        value = this.filteredInvoices
+          .filter(item => !(item.type === 'credit_note' || 
+                          item.is_credit_note || 
+                          item.invoice_type === 'credit_note' ||
+                          item.credit_note_number ||
+                          (item.invoice_number && item.invoice_number.startsWith('AV'))))
           .reduce((sum, item) => {
-            const amount = item.total_amount || item.net_to_pay || item.amount || 0;
-            return sum + Number(amount);
+            const amount = parseFloat(item.total_amount) || parseFloat(item.net_to_pay) || 0;
+            return sum + (isNaN(amount) ? 0 : amount);
           }, 0);
-        return invoiceTotal;
-      
-      case 'total_credit_notes':
-        // Somme des avoirs seulement
-        const creditTotal = this.filteredInvoices
-          .filter(item => {
-            return item.type === 'credit_note' || 
-                   item.is_credit_note || 
-                   item.invoice_type === 'credit_note' ||
-                   item.credit_note_number ||
-                   (item.invoice_number && item.invoice_number.startsWith('AV'));
-          })
-          .reduce((sum, item) => {
-            const amount = item.total_amount || item.amount || item.net_to_pay || 0;
-            return sum + Number(amount);
-          }, 0);
-        return creditTotal;
+        break;
       
       case 'net_amount':
-        // Calculer net = factures - avoirs
-        const totalInv = this.filteredInvoices
-          .filter(item => {
-            return !(item.type === 'credit_note' || 
-                     item.is_credit_note || 
-                     item.invoice_type === 'credit_note' ||
-                     item.credit_note_number ||
-                     (item.invoice_number && item.invoice_number.startsWith('AV')));
-          })
-          .reduce((sum, item) => sum + Number(item.total_amount || item.net_to_pay || item.amount || 0), 0);
-        const totalCred = this.filteredInvoices
-          .filter(item => {
-            return item.type === 'credit_note' || 
-                   item.is_credit_note || 
-                   item.invoice_type === 'credit_note' ||
-                   item.credit_note_number ||
-                   (item.invoice_number && item.invoice_number.startsWith('AV'));
-          })
-          .reduce((sum, item) => sum + Number(item.total_amount || item.amount || item.net_to_pay || 0), 0);
-        const netAmount = totalInv - totalCred;
-        return netAmount;
+        // Somme nette (factures - avoirs)
+        const invoiceTotal = this.filteredInvoices
+          .filter(item => !(item.type === 'credit_note' || 
+                          item.is_credit_note || 
+                          item.invoice_type === 'credit_note' ||
+                          item.credit_note_number ||
+                          (item.invoice_number && item.invoice_number.startsWith('AV'))))
+          .reduce((sum, item) => {
+            const amount = parseFloat(item.net_to_pay) || 0;
+            return sum + (isNaN(amount) ? 0 : amount);
+          }, 0);
+        
+        const creditTotal = this.filteredInvoices
+          .filter(item => item.type === 'credit_note' || 
+                         item.is_credit_note || 
+                         item.invoice_type === 'credit_note' ||
+                         item.credit_note_number ||
+                         (item.invoice_number && item.invoice_number.startsWith('AV')))
+          .reduce((sum, item) => {
+            const amount = parseFloat(item.net_to_pay) || 0;
+            return sum + (isNaN(amount) ? 0 : amount);
+          }, 0);
+        
+        value = invoiceTotal - creditTotal;
+        break;
       
       default:
-        return 0;
+        value = 0;
     }
+    
+    return isNaN(value) ? 0 : value;
   }
 
   getKpiPeriod(): string {
@@ -891,16 +1296,9 @@ export class DashboardComponent implements OnInit {
     this.loadDynamicKpis(); // Charger les KPIs pour cette année
   }
 
-  resetFilters(): void {
-    this.selectedMonth = '';
-    this.selectedYear = '';
-    this.filteredInvoices = this.kpis?.recent_invoices || [];
-    this.dynamicKpis = null; // Revenir aux KPIs par défaut
-  }
-
   applyFilters(): void {
     // Si aucun filtre n'est appliqué, afficher les factures récentes
-    if (!this.selectedMonth && !this.selectedYear) {
+    if (!this.selectedMonth && !this.selectedYear && !this.selectedStatus) {
       this.filteredInvoices = this.kpis?.recent_invoices || [];
       return;
     }
@@ -913,11 +1311,14 @@ export class DashboardComponent implements OnInit {
 
     // Filtrer les factures
     let filteredInvoices = [...this.allInvoices];
+    
+    // Filtrer par mois/année
     if (this.selectedMonth || this.selectedYear) {
       filteredInvoices = filteredInvoices.filter(invoice => {
-        if (!invoice.created_at && !invoice.invoice_date) return false;
+        // Utiliser invoice_date en priorité, sinon created_at
+        const dateToUse = invoice.invoice_date || invoice.created_at;
+        if (!dateToUse) return false;
         
-        const dateToUse = invoice.created_at || invoice.invoice_date;
         const invoiceDate = new Date(dateToUse);
         const invoiceMonth = String(invoiceDate.getMonth() + 1).padStart(2, '0');
         const invoiceYear = String(invoiceDate.getFullYear());
@@ -928,14 +1329,35 @@ export class DashboardComponent implements OnInit {
         return monthMatch && yearMatch;
       });
     }
+    
+    // Filtrer par statut
+    if (this.selectedStatus) {
+      filteredInvoices = filteredInvoices.filter(invoice => {
+        const status = invoice.status?.toUpperCase() || invoice.payment_status?.toUpperCase() || '';
+        
+        switch (this.selectedStatus) {
+          case 'paid':
+            return status === 'PAID' || status === 'PAYEE';
+          case 'pending':
+            return status === 'PENDING' || status === 'EN_ATTENTE';
+          case 'overdue':
+            return status === 'OVERDUE' || status === 'EN_RETARD' || status === 'CANCELLED' || status === 'ANNULEE';
+          default:
+            return false;
+        }
+      });
+    }
 
     // Filtrer les avoirs
     let filteredCreditNotes = [...this.allCreditNotes];
+    
+    // Filtrer par mois/année pour les avoirs
     if (this.selectedMonth || this.selectedYear) {
       filteredCreditNotes = filteredCreditNotes.filter(creditNote => {
-        if (!creditNote.created_at && !creditNote.credit_note_date) return false;
+        // Utiliser credit_note_date en priorité, sinon created_at
+        const dateToUse = creditNote.credit_note_date || creditNote.created_at;
+        if (!dateToUse) return false;
         
-        const dateToUse = creditNote.created_at || creditNote.credit_note_date;
         const creditDate = new Date(dateToUse);
         const creditMonth = String(creditDate.getMonth() + 1).padStart(2, '0');
         const creditYear = String(creditDate.getFullYear());
@@ -946,9 +1368,30 @@ export class DashboardComponent implements OnInit {
         return monthMatch && yearMatch;
       });
     }
+    
+    // Filtrer par statut pour les avoirs (si applicable)
+    if (this.selectedStatus) {
+      filteredCreditNotes = filteredCreditNotes.filter(creditNote => {
+        const status = creditNote.status?.toUpperCase() || creditNote.payment_status?.toUpperCase() || '';
+        
+        switch (this.selectedStatus) {
+          case 'paid':
+            return status === 'PAID' || status === 'PAYEE';
+          case 'pending':
+            return status === 'PENDING' || status === 'EN_ATTENTE';
+          case 'overdue':
+            return status === 'OVERDUE' || status === 'EN_RETARD' || status === 'CANCELLED' || status === 'ANNULEE';
+          default:
+            return false;
+        }
+      });
+    }
 
     // Combiner factures et avoirs filtrés
     this.filteredInvoices = [...filteredInvoices, ...filteredCreditNotes];
+    
+    // Forcer la détection de changement
+    this.cdr.detectChanges();
   }
 
   private initCharts(): void {
@@ -1048,6 +1491,242 @@ export class DashboardComponent implements OnInit {
       console.log('✅ supplierChart rendered', { labels, data });
     } else {
       console.log('⚠️ supplierChart canvas not found');
+    }
+  }
+
+  // Nouvelles méthodes pour les filtres améliorés
+  getCurrentPeriod(): string {
+    const currentDate = new Date();
+    const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+    return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+  }
+
+  hasActiveFilters(): boolean {
+    return !!(this.selectedMonth || this.selectedYear || this.selectedStatus);
+  }
+
+  getQuickPeriod(): string {
+    return this.quickPeriod;
+  }
+
+  onPeriodQuickChange(value: string): void {
+    this.quickPeriod = value;
+    const currentDate = new Date();
+    const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const currentYear = currentDate.getFullYear();
+
+    switch (value) {
+      case 'current':
+        this.selectedMonth = currentMonth;
+        this.selectedYear = String(currentYear);
+        break;
+      case 'last':
+        const lastMonth = currentDate.getMonth() === 0 ? 12 : currentDate.getMonth();
+        const lastMonthStr = String(lastMonth).padStart(2, '0');
+        const lastYear = lastMonth === 12 ? currentYear - 1 : currentYear;
+        this.selectedMonth = lastMonthStr;
+        this.selectedYear = String(lastYear);
+        break;
+      case 'quarter':
+        // Simplifié: on utilise le mois actuel
+        this.selectedMonth = currentMonth;
+        this.selectedYear = String(currentYear);
+        break;
+      case 'year':
+        this.selectedMonth = '';
+        this.selectedYear = String(currentYear);
+        break;
+      case 'custom':
+        // Ne rien faire, laisser l'utilisateur choisir
+        break;
+    }
+    this.applyFilters();
+  }
+
+  onStatusFilterChange(value: string): void {
+    this.selectedStatus = value;
+    this.applyFilters();
+  }
+
+  clearMonthFilter(): void {
+    this.selectedMonth = '';
+    this.applyFilters();
+  }
+
+  clearYearFilter(): void {
+    this.selectedYear = '';
+    this.applyFilters();
+  }
+
+  clearStatusFilter(): void {
+    this.selectedStatus = '';
+    this.applyFilters();
+  }
+
+  getMonthLabel(monthValue: string): string {
+    const month = this.getMonths().find(m => m.value === monthValue);
+    return month ? month.label : monthValue;
+  }
+
+  getStatusLabel(statusValue: string): string {
+    const statusMap: { [key: string]: string } = {
+      'paid': 'Payées',
+      'pending': 'En attente',
+      'overdue': 'En retard'
+    };
+    return statusMap[statusValue] || statusValue;
+  }
+
+  // Mettre à jour resetFilters pour inclure selectedStatus
+  resetFilters(): void {
+    this.selectedMonth = '';
+    this.selectedYear = '';
+    this.selectedStatus = '';
+    this.quickPeriod = 'current';
+    this.filteredInvoices = this.kpis?.recent_invoices || [];
+    this.dynamicKpis = null; // Revenir aux KPIs par défaut
+  }
+
+  // Méthodes pour les tendances des KPI
+  getInvoiceTrend(): { value: number, text: string, type: 'up' | 'down' | 'neutral' } {
+    // Simuler une tendance (à remplacer par vraie logique backend)
+    const currentCount = this.getKpiValue('invoice_count');
+    const previousCount = Math.max(0, currentCount - 3); // Simulation
+    const trend = currentCount - previousCount;
+    const percentage = previousCount > 0 ? Math.round((trend / previousCount) * 100) : 0;
+    
+    if (trend > 0) {
+      return { value: percentage, text: `+${percentage}% vs mois dernier`, type: 'up' };
+    } else if (trend < 0) {
+      return { value: Math.abs(percentage), text: `-${Math.abs(percentage)}% vs mois dernier`, type: 'down' };
+    } else {
+      return { value: 0, text: 'Stable', type: 'neutral' };
+    }
+  }
+
+  getCreditNoteTrend(): { value: number, text: string, type: 'up' | 'down' | 'neutral' } {
+    // Simuler une tendance (à remplacer par vraie logique backend)
+    const currentCount = this.getKpiValue('credit_note_count');
+    const previousCount = Math.max(0, currentCount + 1); // Simulation de baisse
+    const trend = currentCount - previousCount;
+    const percentage = previousCount > 0 ? Math.round((trend / previousCount) * 100) : 0;
+    
+    if (trend > 0) {
+      return { value: percentage, text: `+${percentage}% vs mois dernier`, type: 'up' };
+    } else if (trend < 0) {
+      return { value: Math.abs(percentage), text: `-${Math.abs(percentage)}% vs mois dernier`, type: 'down' };
+    } else {
+      return { value: 0, text: 'Stable', type: 'neutral' };
+    }
+  }
+
+  getSupplierTrend(): { value: number, text: string, type: 'up' | 'down' | 'neutral' } {
+    // Simuler une tendance (à remplacer par vraie logique backend)
+    const currentCount = this.getKpiValue('total_suppliers');
+    const previousCount = currentCount; // Simulation de stabilité
+    const trend = currentCount - previousCount;
+    
+    if (trend > 0) {
+      return { value: trend, text: `+${trend} nouveaux`, type: 'up' };
+    } else if (trend < 0) {
+      return { value: Math.abs(trend), text: `-${Math.abs(trend)}`, type: 'down' };
+    } else {
+      return { value: 0, text: 'Stable', type: 'neutral' };
+    }
+  }
+
+  getPaymentAlert(): { count: number, text: string } {
+    // Simuler des échéances (à remplacer par vraie logique backend)
+    const netAmount = this.getKpiValue('net_amount');
+    const simulatedCount = netAmount > 100000 ? 5 : 2; // Simulation basée sur le montant
+    
+    return {
+      count: simulatedCount,
+      text: `${simulatedCount} échéance${simulatedCount > 1 ? 's' : ''} ce mois`
+    };
+  }
+
+  // Méthodes pour le tableau amélioré
+  getRelativeDate(dateString: string): string {
+    if (!dateString) return 'Date inconnue';
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    // Vérifier si la date est valide
+    if (isNaN(date.getTime())) return 'Date invalide';
+    
+    // Calculer la différence en jours correctement
+    const diffTime = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Ajuster pour le décalage horaire et s'assurer que les dates du même jour sont comptées comme 0
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const nowOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const calendarDiff = Math.floor((nowOnly.getTime() - dateOnly.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (calendarDiff === 0) return 'Aujourd\'hui';
+    if (calendarDiff === 1) return 'Hier';
+    if (calendarDiff < 7) return `Il y a ${calendarDiff} jours`;
+    if (calendarDiff < 30) return `Il y a ${Math.floor(calendarDiff / 7)} semaine${Math.floor(calendarDiff / 7) > 1 ? 's' : ''}`;
+    if (calendarDiff < 365) return `Il y a ${Math.floor(calendarDiff / 30)} mois`;
+    return `Il y a ${Math.floor(calendarDiff / 365)} an${Math.floor(calendarDiff / 365) > 1 ? 's' : ''}`;
+  }
+
+  getStatusClass(invoice: any): string {
+    // Logique pour déterminer le statut visuel
+    if (invoice.invoice_number?.startsWith('AV')) {
+      return 'status-credit';
+    }
+    
+    // Utiliser les mêmes valeurs que dans le composant factures
+    const status = invoice.status?.toUpperCase() || invoice.payment_status?.toUpperCase() || 'PENDING';
+    
+    switch (status) {
+      case 'PAID':
+      case 'PAYEE':
+        return 'status-paid';
+      case 'PENDING':
+      case 'EN_ATTENTE':
+        return 'status-pending';
+      case 'OVERDUE':
+      case 'EN_RETARD':
+        return 'status-overdue';
+      case 'CANCELLED':
+      case 'ANNULEE':
+        return 'status-overdue';
+      default:
+        return 'status-pending';
+    }
+  }
+
+  getStatusText(invoice: any): string {
+    if (invoice.invoice_number?.startsWith('AV')) {
+      return 'Avoir';
+    }
+    
+    // Utiliser les mêmes valeurs que dans le composant factures
+    const status = invoice.status?.toUpperCase() || invoice.payment_status?.toUpperCase() || 'PENDING';
+    
+    switch (status) {
+      case 'PAID':
+      case 'PAYEE':
+        return 'Payée';
+      case 'PENDING':
+      case 'EN_ATTENTE':
+        return 'En attente';
+      case 'OVERDUE':
+      case 'EN_RETARD':
+        return 'En retard';
+      case 'CANCELLED':
+      case 'ANNULEE':
+        return 'Annulée';
+      case 'DRAFT':
+      case 'BROUILLON':
+        return 'Brouillon';
+      default:
+        return 'En attente';
     }
   }
 }

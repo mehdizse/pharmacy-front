@@ -1,0 +1,72 @@
+/* Styles globaux pour les modaux de confirmation */
+.confirm-dialog-panel {
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+  }
+  
+  .mat-mdc-dialog-surface {
+    border-radius: 16px !important;
+    overflow: hidden;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+  }
+  
+  .mat-mdc-dialog-content {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .mat-mdc-dialog-actions {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+/* Animation pour l'overlay */
+.mat-mdc-dialog-container {
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Amélioration du backdrop */
+.mat-mdc-dialog-scrim {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(2px);
+}
+
+/* Styles pour les boutons dans les modals */
+.confirm-dialog .mat-mdc-button,
+.confirm-dialog .mat-raised-button {
+  transition: all 0.2s ease !important;
+}
+
+.confirm-dialog .mat-mdc-button:hover,
+.confirm-dialog .mat-raised-button:hover {
+  transform: translateY(-1px);
+}
+
+/* Correction du positionnement - NE PAS FORCER LE FLEX SUR LE CONTAINER PRINCIPAL */
+.confirm-dialog .mat-mdc-dialog-container {
+  /* Utiliser le positionnement par défaut de Material */
+  display: block !important;
+  align-items: unset !important;
+  justify-content: unset !important;
+}
+
+/* Centrer le contenu du modal lui-même */
+.confirm-dialog {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
