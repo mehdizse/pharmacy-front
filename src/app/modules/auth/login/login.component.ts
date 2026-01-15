@@ -105,7 +105,10 @@ import { AuthResponse } from '../../../shared/models/auth.model';
                     class="login-button"
                     [disabled]="loginForm.invalid || isLoading">
               <mat-icon *ngIf="!isLoading">login</mat-icon>
-              <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
+              <mat-spinner *ngIf="isLoading" 
+                          diameter="20" 
+                          strokeWidth="3"
+                          class="white-spinner"></mat-spinner>
               <span *ngIf="!isLoading">Se connecter</span>
             </button>
           </form>
@@ -253,6 +256,10 @@ import { AuthResponse } from '../../../shared/models/auth.model';
 
     .password-toggle:hover {
       opacity: 1;
+    }
+
+    .white-spinner {
+      stroke: white !important;
     }
 
     .form-options {
