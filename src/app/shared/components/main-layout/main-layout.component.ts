@@ -4,6 +4,7 @@ import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -17,17 +18,18 @@ import { MatButtonModule } from '@angular/material/button';
   ],
   template: `
     <div class="app-layout">
-      <!-- Sidebar -->
-      <app-sidebar></app-sidebar>
+      <!-- Sidebar - seulement si connecté -->
+      <app-sidebar *ngIf="authService.isLoggedIn()"></app-sidebar>
       
       <!-- Main Content -->
-      <div class="main-content">
-        <!-- Mobile Menu Toggle -->
+      <div class="main-content" [class.no-sidebar]="!authService.isLoggedIn()">
+        <!-- Mobile Menu Toggle - seulement si connecté -->
         <button 
           mat-icon-button 
           class="mobile-menu-toggle"
           (click)="toggleMobileMenu()"
-          aria-label="Toggle menu">
+          aria-label="Toggle menu"
+          *ngIf="authService.isLoggedIn()">
           <mat-icon>menu</mat-icon>
         </button>
         
@@ -50,6 +52,10 @@ import { MatButtonModule } from '@angular/material/button';
       min-height: 100vh;
       background: #f5f7fa;
       transition: margin-left 0.3s ease;
+    }
+
+    .main-content.no-sidebar {
+      margin-left: 0;
     }
 
     .mobile-menu-toggle {
@@ -94,6 +100,8 @@ import { MatButtonModule } from '@angular/material/button';
   `]
 })
 export class MainLayoutComponent {
+  
+  constructor(private authService: AuthService) {}
   
   toggleMobileMenu(): void {
     document.querySelector('app-sidebar')?.classList.toggle('open');
