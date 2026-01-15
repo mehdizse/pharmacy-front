@@ -22,7 +22,7 @@ const routes: Routes = [
     component: InvoiceFormComponent,
     canActivate: [AuthGuard, RoleGuard],
     data: { 
-      roles: [UserRole.ADMIN, UserRole.PHARMACIEN],
+      roles: [UserRole.ADMIN, UserRole.PHARMACIEN, UserRole.COMPTABLE],
       title: 'Nouvelle facture - Pharmacie Manager'
     }
   },
@@ -40,7 +40,7 @@ const routes: Routes = [
     component: InvoiceFormComponent,
     canActivate: [AuthGuard, RoleGuard],
     data: { 
-      roles: [UserRole.ADMIN, UserRole.PHARMACIEN],
+      roles: [UserRole.ADMIN, UserRole.PHARMACIEN, UserRole.COMPTABLE],
       title: 'Modifier facture - Pharmacie Manager'
     }
   }

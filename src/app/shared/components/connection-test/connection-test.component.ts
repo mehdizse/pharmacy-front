@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { environment } from '@environments/environment';
 
 @Component({
   selector: 'app-connection-test',
@@ -46,7 +47,7 @@ import { AuthService } from '../../../core/services/auth.service';
   `
 })
 export class ConnectionTestComponent implements OnInit {
-  baseUrl = 'http://localhost:8000';
+  baseUrl = environment.apiUrl;
   connectionStatus: 'idle' | 'success' | 'error' = 'idle';
   connectionStatusText = 'Non testé';
   isAuthenticated = false;
@@ -69,18 +70,15 @@ export class ConnectionTestComponent implements OnInit {
     this.connectionStatusText = 'Test en cours...';
     this.error = null;
 
-    // Test simple de connexion au backend
     this.apiService.get('/api/health/').subscribe({
       next: (response) => {
         this.connectionStatus = 'success';
         this.connectionStatusText = 'Connecté avec succès';
-        console.log('Backend response:', response);
       },
       error: (err) => {
         this.connectionStatus = 'error';
         this.connectionStatusText = 'Erreur de connexion';
         this.error = err.message || 'Erreur inconnue';
-        console.error('Backend connection error:', err);
       }
     });
   }

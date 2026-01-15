@@ -12,7 +12,6 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
 import { LoginRequest } from '../../../shared/models/auth.model';
 import { AuthResponse } from '../../../shared/models/auth.model';
-import { ConnectionTestComponent } from '../../../shared/components/connection-test/connection-test.component';
 
 @Component({
   selector: 'app-login',
@@ -24,14 +23,11 @@ import { ConnectionTestComponent } from '../../../shared/components/connection-t
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatProgressSpinnerModule,
-    ConnectionTestComponent
+    MatProgressSpinnerModule
   ],
   template: `
     <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div class="max-w-md w-full space-y-8">
-        <app-connection-test></app-connection-test>
-        
         <div>
           <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Pharmacie Manager
@@ -143,23 +139,14 @@ export class LoginComponent implements OnInit {
 
     this.authService.login(loginRequest).subscribe({
       next: (response: AuthResponse) => {
-        console.log('Réponse du backend:', response); // Debug
-        console.log('Token:', response.token); // Debug
-        console.log('User:', response.user); // Debug
-        
         this.authService.setCurrentUser(response);
-        this.isLoading = false; // Ajouté pour arrêter le loading
+        this.isLoading = false;
         this.snackBar.open('Connexion réussie', 'Fermer', {
           duration: 3000,
           panelClass: ['success-snackbar']
         });
         
-        console.log('Redirection vers:', this.returnUrl); // Debug
-        
-        this.router.navigate([this.returnUrl]).then(
-          () => console.log('Redirection réussie'),
-          (err) => console.error('Erreur de redirection:', err)
-        );
+        this.router.navigate([this.returnUrl]);
       },
       error: (error: any) => {
         this.isLoading = false;

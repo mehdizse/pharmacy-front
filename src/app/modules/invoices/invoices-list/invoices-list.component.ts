@@ -226,15 +226,11 @@ export class InvoicesListComponent implements OnInit {
     private pdfService: PdfService,
     private dateService: DateService
   ) {
-    console.log('🏗️ InvoicesListComponent initialized');
     // Initialiser le locale français pour les dates
     this.dateService.initFrenchLocale();
   }
 
   ngOnInit(): void {
-    console.log('🚀 InvoicesListComponent ngOnInit called');
-    console.log('📋 Initial invoices array:', this.invoices);
-    console.log('🗂️ Initial dataSource:', this.dataSource);
     this.loadInvoices();
     
     // Configure filter predicate for global search (number, supplier)
@@ -246,30 +242,21 @@ export class InvoicesListComponent implements OnInit {
   }
 
   loadInvoices(): void {
-    console.log('🔄 Starting to load invoices...');
     this.isLoading = true;
-    console.log('⏳ isLoading set to true');
     
     this.apiService.get<Invoice[]>('/api/invoices/').subscribe({
       next: (response: any) => {
-        console.log('✅ API Response received:', response);
-        console.log('📊 Response type:', typeof response);
-        console.log('🔍 Response keys:', Object.keys(response));
         
         // Handle different response formats
         if (response && typeof response === 'object') {
           if ('data' in response) {
-            console.log('📦 Using response.data:', response.data);
             this.invoices = response.data || [];
           } else if ('results' in response) {
-            console.log('📦 Using response.results:', response.results);
             this.invoices = response.results || [];
           } else {
-            console.log('📦 Using direct response:', response);
             this.invoices = Array.isArray(response) ? response : [];
           }
         } else {
-          console.log('❌ Invalid response format:', response);
           this.invoices = [];
         }
         
@@ -287,53 +274,30 @@ export class InvoicesListComponent implements OnInit {
           status: invoice.status || 'PENDING'
         }));
         
-        console.log('📋 Final invoices array:', this.invoices);
-        console.log('📏 Invoices count:', this.invoices.length);
-        
         this.dataSource.data = this.invoices;
-        console.log('🗂️ DataSource data set:', this.dataSource.data);
-        console.log('🗂️ DataSource object:', this.dataSource);
         
         this.isLoading = false;
-        console.log('✅ Load invoices completed');
       },
       error: (error: any) => {
-        console.error('❌ Error loading invoices:', error);
-        console.error('🔍 Error details:', {
-          status: error.status,
-          statusText: error.statusText,
-          url: error.url,
-          message: error.message
-        });
         this.invoices = [];
-        this.dataSource.data = [];
+        this.dataSource.data = this.invoices;
         this.isLoading = false;
       }
     });
   }
 
   applyFilter(event: Event): void {
-    console.log('🔍 Applying filter...');
-    console.log('📋 Current invoices:', this.invoices);
-    
     if (!this.invoices || this.invoices.length === 0) {
-      console.log('⚠️ No invoices to filter');
       return;
     }
     
     const filterValue = (event.target as HTMLInputElement).value;
-    console.log('🔤 Filter value:', filterValue);
     
     this.dataSource.filter = filterValue.trim().toLowerCase();
-    console.log('🗂️ Filtered dataSource:', this.dataSource.filteredData);
   }
 
   filterByStatus(status: string): void {
-    console.log('🏷️ Filtering by status:', status);
-    console.log('📋 Current invoices:', this.invoices);
-    
     if (!this.invoices || this.invoices.length === 0) {
-      console.log('⚠️ No invoices to filter');
       return;
     }
     
@@ -344,15 +308,10 @@ export class InvoicesListComponent implements OnInit {
     
     // Apply the filter
     this.dataSource.filter = status || '';
-    console.log('🗂️ Filtered dataSource:', this.dataSource.filteredData);
   }
 
   filterByPeriod(period: string): void {
-    console.log('📅 Filtering by period:', period);
-    console.log('📋 Current invoices:', this.invoices);
-    
     if (!this.invoices || this.invoices.length === 0) {
-      console.log('⚠️ No invoices to filter');
       return;
     }
     
@@ -365,7 +324,6 @@ export class InvoicesListComponent implements OnInit {
         return data.invoiceNumber.toLowerCase().includes(filterStr) ||
                data.supplier.name.toLowerCase().includes(filterStr);
       };
-      console.log('🗂️ Reset to all invoices');
       return;
     }
     
@@ -405,7 +363,6 @@ export class InvoicesListComponent implements OnInit {
     
     // Apply the filter
     this.dataSource.filter = 'period_filter';
-    console.log('🗂️ Filtered dataSource:', this.dataSource.filteredData);
   }
 
   generatePDF(invoice: Invoice): void {
@@ -419,7 +376,7 @@ export class InvoicesListComponent implements OnInit {
           this.loadInvoices();
         },
         error: (error: any) => {
-          console.error('Error deleting invoice:', error);
+          // Handle error silently
         }
       });
     }
@@ -435,14 +392,13 @@ export class InvoicesListComponent implements OnInit {
         this.loadInvoices();
       },
       error: (error: any) => {
-        console.error('Error marking invoice as paid:', error);
+        // Handle error silently
       }
     });
   }
 
   duplicateInvoice(invoice: Invoice): void {
     // Implémentation de la duplication
-    console.log('Duplicating invoice:', invoice);
   }
 
   formatDate(dateString: string): string {

@@ -21,7 +21,7 @@ const routes: Routes = [
     component: SupplierFormComponent,
     canActivate: [AuthGuard, RoleGuard],
     data: { 
-      roles: [UserRole.ADMIN, UserRole.PHARMACIEN],
+      roles: [UserRole.ADMIN, UserRole.PHARMACIEN, UserRole.COMPTABLE],
       title: 'Nouveau fournisseur - Pharmacie Manager'
     }
   },
@@ -30,7 +30,7 @@ const routes: Routes = [
     component: SupplierFormComponent,
     canActivate: [AuthGuard, RoleGuard],
     data: { 
-      roles: [UserRole.ADMIN, UserRole.PHARMACIEN],
+      roles: [UserRole.ADMIN, UserRole.PHARMACIEN, UserRole.COMPTABLE],
       title: 'Modifier fournisseur - Pharmacie Manager'
     }
   }
