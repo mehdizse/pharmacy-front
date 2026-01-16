@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,6 +14,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 
 import { CreditNote, CreditNoteStatus } from '../../../shared/models/business.model';
 import { PdfService } from '../../../core/services/pdf.service';
@@ -39,6 +40,7 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
     MatMenuModule,
     MatTooltipModule,
     MatChipsModule,
+    MatPaginatorModule,
     RouterModule
   ],
   template: `
@@ -50,18 +52,8 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
           <div class="page-info">
             <mat-icon class="page-icon">assignment_return</mat-icon>
             <span class="page-text">Gestion des avoirs et notes de crédit</span>
-            <span class="page-badge">{{ dataSource.filteredData.length }} avoir{{ dataSource.filteredData.length > 1 ? 's' : '' }}</span>
+            <span class="page-badge">{{ totalCount || dataSource.filteredData.length }} avoir{{ (totalCount || dataSource.filteredData.length) > 1 ? 's' : '' }}</span>
           </div>
-        </div>
-        <div class="header-actions">
-          <button mat-stroked-button class="export-btn">
-            <mat-icon>download</mat-icon>
-            Exporter
-          </button>
-          <button mat-flat-button color="primary" routerLink="/credit-notes/new" class="new-credit-note-btn">
-            <mat-icon>add</mat-icon>
-            Nouvel avoir
-          </button>
         </div>
       </div>
 
@@ -86,16 +78,6 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="filter-field">
-            <mat-label>Statut</mat-label>
-            <mat-select (selectionChange)="filterByStatus($event.value)">
-              <mat-option value="">Tous</mat-option>
-              <mat-option value="PENDING">En attente</mat-option>
-              <mat-option value="APPLIED">Appliqué</mat-option>
-              <mat-option value="CANCELLED">Annulé</mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="filter-field">
             <mat-label>Période</mat-label>
             <mat-select (selectionChange)="filterByPeriod($event.value)">
               <mat-option value="">Toutes</mat-option>
@@ -111,10 +93,6 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
         <div class="active-filters" [class.hidden]="!hasActiveFilters()">
           <span class="active-filters-label">Filtres actifs:</span>
           <div class="filter-tags">
-            <mat-chip *ngIf="currentStatus" class="filter-tag" (removed)="clearStatusFilter()">
-              {{ getStatusText(currentStatus) }}
-              <mat-icon matChipRemove>close</mat-icon>
-            </mat-chip>
             <mat-chip *ngIf="currentPeriod" class="filter-tag" (removed)="clearPeriodFilter()">
               {{ getPeriodLabel(currentPeriod) }}
               <mat-icon matChipRemove>close</mat-icon>
@@ -145,7 +123,6 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
                   <th class="col-date">Date avoir</th>
                   <th class="col-amount">Montant</th>
                   <th class="col-reason">Motif</th>
-                  <th class="col-status">Statut</th>
                   <th class="col-actions">Actions</th>
                 </tr>
               </thead>
@@ -197,11 +174,6 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
                       </span>
                     </div>
                   </td>
-                  <td class="col-status">
-                    <span class="status-badge" [ngClass]="getStatusClass(creditNote.status)">
-                      {{ getStatusText(creditNote.status) }}
-                    </span>
-                  </td>
                   <td class="col-actions">
                     <div class="action-buttons">
                       <button mat-icon-button 
@@ -230,8 +202,7 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
                               color="warn" 
                               (click)="deleteCreditNote(creditNote)"
                               matTooltip="Supprimer"
-                              class="action-btn"
-                              *ngIf="creditNote.status === 'DRAFT'">
+                              class="action-btn">
                         <mat-icon>delete</mat-icon>
                       </button>
                     </div>
@@ -260,6 +231,20 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
           </div>
         </div>
       </div>
+
+      <!-- Paginator -->
+      <mat-paginator 
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        [pageSize]="20"
+        showFirstLastButtons
+        showPageSizeSelect
+        aria-label="Pagination des avoirs"
+        itemsPerPageLabel="Éléments par page"
+        nextPageLabel="Page suivante"
+        previousPageLabel="Page précédente"
+        firstPageLabel="Première page"
+        lastPageLabel="Dernière page">
+      </mat-paginator>
 
       <!-- Loading State -->
       <div *ngIf="isLoading" class="loading-overlay">
@@ -372,7 +357,7 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
 
     .filters-container {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 1rem;
       align-items: end;
     }
@@ -530,17 +515,12 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
     }
 
     .col-reason {
-      width: 18%;
-      text-align: center;
-    }
-
-    .col-status {
-      width: 12%;
+      width: 22%;
       text-align: center;
     }
 
     .col-actions {
-      width: 14%;
+      width: 18%;
       text-align: center;
     }
 
@@ -679,33 +659,6 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
       white-space: nowrap;
     }
 
-    /* Badges de statut */
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.25rem 0.75rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      white-space: nowrap;
-      animation: badgeGlow 3s ease-in-out infinite;
-    }
-
-    .status-paid {
-      background: #DCFCE7;
-      color: #16A34A;
-    }
-
-    .status-pending {
-      background: #FEF3C7;
-      color: #D97706;
-    }
-
-    .status-overdue {
-      background: #FEE2E2;
-      color: #DC2626;
-    }
-
     /* Actions */
     .action-buttons {
       display: flex;
@@ -801,16 +754,6 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
       font-weight: 500;
     }
 
-    /* Animations pour les badges */
-    @keyframes badgeGlow {
-      0%, 100% {
-        box-shadow: 0 0 0 0 currentColor;
-      }
-      50% {
-        box-shadow: 0 0 0 4px rgba(0,0,0,0.1);
-      }
-    }
-
     /* Amélioration des transitions */
     * {
       transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
@@ -849,7 +792,7 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
     }
   `]
 })
-export class CreditNotesListComponent implements OnInit {
+export class CreditNotesListComponent implements OnInit, AfterViewInit {
   creditNotes: CreditNote[] = [];
   invoices: any[] = [];
   dataSource = new MatTableDataSource<any>();
@@ -859,20 +802,24 @@ export class CreditNotesListComponent implements OnInit {
     'creditDate', 
     'amount', 
     'reason', 
-    'status', 
     'actions'
   ];
   isLoading = false;
+  totalCount = 0;
+  pageSize = 20;
+  currentPage = 0;
+  
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
   
   // Properties for filters
-  currentStatus: string = '';
   currentPeriod: string = '';
 
   constructor(
     private apiService: ApiService,
     private pdfService: PdfService,
     private dateService: DateService,
-    private confirmationService: ConfirmationService
+    private confirmationService: ConfirmationService,
+    private cdr: ChangeDetectorRef
   ) {
     // Initialiser le locale français pour les dates
     this.dateService.initFrenchLocale();
@@ -890,30 +837,62 @@ export class CreditNotesListComponent implements OnInit {
     };
   }
 
+  ngAfterViewInit(): void {
+    // Configurer le paginator pour utiliser notre pagination personnalisée
+    this.paginator.page.subscribe((event: PageEvent) => {
+      this.pageSize = event.pageSize;
+      this.currentPage = event.pageIndex;
+      this.loadCreditNotes(); // Recharger avec la nouvelle page
+    });
+    
+    // Configurer les labels français
+    this.paginator._intl.itemsPerPageLabel = "Éléments par page";
+    this.paginator._intl.nextPageLabel = "Page suivante";
+    this.paginator._intl.previousPageLabel = "Page précédente";
+    this.paginator._intl.firstPageLabel = "Première page";
+    this.paginator._intl.lastPageLabel = "Dernière page";
+    this.paginator._intl.getRangeLabel = (page: number, pageSize: number, length: number) => {
+      if (length === 0 || pageSize === 0) {
+        return `0 sur ${length}`;
+      }
+      length = Math.max(length, 0);
+      const startIndex = page * pageSize;
+      const endIndex = startIndex < length ? Math.min(startIndex + pageSize, length) : startIndex + pageSize;
+      return `${startIndex + 1} - ${endIndex} sur ${length}`;
+    };
+  }
+
   loadCreditNotes(): void {
     this.isLoading = true;
-
-    this.apiService.get<CreditNote[]>('/api/credit-notes/').subscribe({
+    
+    const page = this.currentPage + 1; // API utilise 1-based, Angular utilise 0-based
+    const url = `/api/credit-notes/?page=${page}&page_size=${this.pageSize}`;
+    
+    this.apiService.get<any>(url).subscribe({
       next: (response: any) => {
-        // Handle different response formats
         if (response && typeof response === 'object') {
-          if ('data' in response) {
-            this.creditNotes = response.data || [];
-          } else if ('results' in response) {
+          if ('results' in response) {
+            // Pagination format
             this.creditNotes = response.results || [];
+            this.totalCount = response.count || 0;
+          } else if ('data' in response) {
+            this.creditNotes = response.data || [];
+            this.totalCount = this.creditNotes.length;
           } else {
             this.creditNotes = Array.isArray(response) ? response : [];
+            this.totalCount = this.creditNotes.length;
           }
         } else {
           this.creditNotes = [];
+          this.totalCount = 0;
         }
-
-        // Map API response to match our UI expectations
-        this.creditNotes = this.creditNotes.map((creditNote: any) => {
+        
+        // Mapper les données
+        const mappedCreditNotes = this.creditNotes.map((creditNote: any) => {
           const mappedCreditNote = {
             ...creditNote,
-            creditNoteNumber: creditNote.credit_note_number ?? creditNote.creditNoteNumber,
-            creditDate: creditNote.credit_note_date ?? creditNote.creditDate,
+            creditNoteNumber: creditNote.credit_note_number ?? creditNote.creditNoteNumber ?? 'N/A',
+            creditDate: creditNote.credit_note_date ?? creditNote.creditDate ?? creditNote.created_at,
             amount: typeof creditNote.amount === 'string' ? parseFloat(creditNote.amount) : creditNote.amount,
             reason: creditNote.reason ?? creditNote.motif ?? '',
             status: creditNote.status ?? (creditNote.is_active ? 'PENDING' : 'CANCELLED'),
@@ -928,14 +907,22 @@ export class CreditNotesListComponent implements OnInit {
           
           return mappedCreditNote;
         });
-
-        this.dataSource.data = this.creditNotes;
-
+        
+        // Configurer le dataSource SANS paginator (on gère manuellement)
+        this.dataSource.data = mappedCreditNotes;
+        
+        // Mettre à jour les infos du paginator
+        this.paginator.length = this.totalCount;
+        this.paginator.pageSize = this.pageSize;
+        this.paginator.pageIndex = this.currentPage;
+        
         this.isLoading = false;
       },
       error: (error: any) => {
+        console.error('❌ Error loading credit notes:', error);
         this.creditNotes = [];
         this.dataSource.data = [];
+        this.totalCount = 0;
         this.isLoading = false;
       }
     });
@@ -951,21 +938,6 @@ export class CreditNotesListComponent implements OnInit {
     this.dataSource.filter = filterValue.trim().toLowerCase();
   }
 
-  filterByStatus(status: string): void {
-    this.currentStatus = status;
-    
-    if (!this.creditNotes || this.creditNotes.length === 0) {
-      return;
-    }
-    
-    // Set custom filter predicate for status filtering
-    this.dataSource.filterPredicate = (data: CreditNote, filter: string) => {
-      return !filter || data.status === filter;
-    };
-    
-    // Apply filter
-    this.dataSource.filter = status || '';
-  }
 
   filterByPeriod(period: string): void {
     this.currentPeriod = period;
@@ -1031,6 +1003,7 @@ export class CreditNotesListComponent implements OnInit {
 
   deleteCreditNote(creditNote: any): void {
     const creditNoteId = creditNote.id || (creditNote as any).uuid;
+    
     if (!creditNoteId) {
       return;
     }
@@ -1038,11 +1011,10 @@ export class CreditNotesListComponent implements OnInit {
     this.confirmationService.confirmDeleteCreditNote(creditNote.creditNoteNumber).subscribe(confirmed => {
       if (confirmed) {
         this.apiService.delete(`/api/credit-notes/${creditNoteId}/`).subscribe({
-          next: () => {
+          next: (response) => {
             this.loadCreditNotes();
           },
           error: (error: any) => {
-            console.error('Error deleting credit note:', error);
           }
         });
       }
@@ -1059,7 +1031,6 @@ export class CreditNotesListComponent implements OnInit {
             this.loadCreditNotes();
           },
           error: (error: any) => {
-            console.error('Error applying credit note:', error);
           }
         });
       }
@@ -1068,7 +1039,6 @@ export class CreditNotesListComponent implements OnInit {
 
   duplicateCreditNote(creditNote: CreditNote): void {
     // Implémentation de la duplication
-    console.log('Duplicating credit note:', creditNote);
   }
 
   formatDate(dateString: string): string {
@@ -1084,32 +1054,11 @@ export class CreditNotesListComponent implements OnInit {
     }).format(amount);
   }
 
-  getStatusText(status: string): string {
-    const statusMap: { [key: string]: string } = {
-      'DRAFT': 'Brouillon',
-      'PENDING': 'En attente',
-      'APPLIED': 'Appliqué',
-      'CANCELLED': 'Annulé'
-    };
-    return statusMap[status] || status;
-  }
-
-  getStatusClass(status: string): string {
-    const classMap: { [key: string]: string } = {
-      'DRAFT': 'status-pending',
-      'PENDING': 'status-pending',
-      'APPLIED': 'status-paid',
-      'CANCELLED': 'status-overdue'
-    };
-    return classMap[status] || 'status-pending';
-  }
-
   hasActiveFilters(): boolean {
-    return !!(this.currentStatus || this.currentPeriod || this.dataSource.filter);
+    return !!(this.currentPeriod || this.dataSource.filter);
   }
 
   resetFilters(): void {
-    this.currentStatus = '';
     this.currentPeriod = '';
     this.dataSource.filter = '';
     
@@ -1123,11 +1072,6 @@ export class CreditNotesListComponent implements OnInit {
     
     // Reset to all credit notes
     this.dataSource.data = this.creditNotes;
-  }
-
-  clearStatusFilter(): void {
-    this.currentStatus = '';
-    this.filterByStatus('');
   }
 
   clearPeriodFilter(): void {

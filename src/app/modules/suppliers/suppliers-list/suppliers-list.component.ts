@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterModule } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatCardModule } from '@angular/material/card';
+import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatDialogModule } from '@angular/material/dialog';
 
 import { Supplier } from '../../../shared/models/business.model';
@@ -29,6 +30,7 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
     MatFormFieldModule,
     MatDialogModule,
     MatProgressSpinnerModule,
+    MatPaginatorModule,
     RouterModule
   ],
   template: `
@@ -42,16 +44,6 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
             <span class="page-text">Gestion des fournisseurs</span>
             <span class="page-badge">{{ suppliers.length }} fournisseur{{ suppliers.length > 1 ? 's' : '' }}</span>
           </div>
-        </div>
-        <div class="header-actions">
-          <button mat-stroked-button class="export-btn">
-            <mat-icon>download</mat-icon>
-            Exporter
-          </button>
-          <button mat-flat-button color="primary" routerLink="/suppliers/new" class="new-supplier-btn">
-            <mat-icon>add</mat-icon>
-            Nouveau fournisseur
-          </button>
         </div>
       </div>
 
@@ -169,6 +161,20 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
           </div>
         </div>
       </div>
+
+      <!-- Paginator -->
+      <mat-paginator 
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        [pageSize]="20"
+        showFirstLastButtons
+        showPageSizeSelect
+        aria-label="Pagination des fournisseurs"
+        itemsPerPageLabel="Éléments par page"
+        nextPageLabel="Page suivante"
+        previousPageLabel="Page précédente"
+        firstPageLabel="Première page"
+        lastPageLabel="Dernière page">
+      </mat-paginator>
 
       <!-- Loading State -->
       <div *ngIf="isLoading" class="loading-overlay">
@@ -590,46 +596,76 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
     }
   `]
 })
-export class SuppliersListComponent implements OnInit {
+export class SuppliersListComponent implements OnInit, AfterViewInit {
   suppliers: Supplier[] = [];
   dataSource = new MatTableDataSource<Supplier>();
   displayedColumns: string[] = ['name', 'city', 'phone', 'isActive', 'actions'];
   isLoading = false;
+  totalCount = 0;
+  pageSize = 20;
+  currentPage = 0;
+  
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(
     private apiService: ApiService,
-    private confirmationService: ConfirmationService
+    private confirmationService: ConfirmationService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.loadSuppliers();
   }
 
+  ngAfterViewInit(): void {
+    // Configurer le paginator pour utiliser notre pagination personnalisée
+    this.paginator.page.subscribe((event: PageEvent) => {
+      this.pageSize = event.pageSize;
+      this.currentPage = event.pageIndex;
+      this.loadSuppliers(); // Recharger avec la nouvelle page
+    });
+    
+    // Configurer les labels français
+    this.paginator._intl.itemsPerPageLabel = "Éléments par page";
+    this.paginator._intl.nextPageLabel = "Page suivante";
+    this.paginator._intl.previousPageLabel = "Page précédente";
+    this.paginator._intl.firstPageLabel = "Première page";
+    this.paginator._intl.lastPageLabel = "Dernière page";
+    this.paginator._intl.getRangeLabel = (page: number, pageSize: number, length: number) => {
+      if (length === 0 || pageSize === 0) {
+        return `0 sur ${length}`;
+      }
+      length = Math.max(length, 0);
+      const startIndex = page * pageSize;
+      const endIndex = startIndex < length ? Math.min(startIndex + pageSize, length) : startIndex + pageSize;
+      return `${startIndex + 1} - ${endIndex} sur ${length}`;
+    };
+  }
+
   loadSuppliers(): void {
-    console.log('🔄 Starting to load suppliers...');
     this.isLoading = true;
     
-    this.apiService.get<Supplier[]>('/api/suppliers/').subscribe({
+    const page = this.currentPage + 1; // API utilise 1-based, Angular utilise 0-based
+    const url = `/api/suppliers/?page=${page}&page_size=${this.pageSize}`;
+    
+    this.apiService.get<Supplier[]>(url).subscribe({
       next: (response: any) => {
-        console.log('✅ API Response received:', response);
-        console.log('📊 Response type:', typeof response);
-        console.log('🔍 Response keys:', Object.keys(response));
-        
         // Handle different response formats
         if (response && typeof response === 'object') {
-          if ('data' in response) {
-            console.log('📦 Using response.data:', response.data);
-            this.suppliers = response.data || [];
-          } else if ('results' in response) {
-            console.log('📦 Using response.results:', response.results);
+          if ('results' in response) {
+            // Pagination format
             this.suppliers = response.results || [];
+            this.totalCount = response.count || 0;
+          } else if ('data' in response) {
+            this.suppliers = response.data || [];
+            this.totalCount = this.suppliers.length;
           } else {
-            console.log('📦 Using direct response:', response);
             this.suppliers = Array.isArray(response) ? response : [];
+            this.totalCount = this.suppliers.length;
           }
         } else {
-          console.log('❌ Invalid response format:', response);
           this.suppliers = [];
+          this.totalCount = 0;
         }
         
         // Map API response to match our interface
@@ -638,23 +674,20 @@ export class SuppliersListComponent implements OnInit {
           isActive: supplier.is_active !== undefined ? supplier.is_active : supplier.isActive
         }));
         
-        console.log('📋 Final suppliers array:', this.suppliers);
-        console.log('📏 Suppliers count:', this.suppliers.length);
-        
+        // Configurer le dataSource SANS paginator (on gère manuellement)
         this.dataSource.data = this.suppliers;
-        console.log('🗂️ DataSource data set:', this.dataSource.data);
+        
+        // Mettre à jour les infos du paginator
+        this.paginator.length = this.totalCount;
+        this.paginator.pageSize = this.pageSize;
+        this.paginator.pageIndex = this.currentPage;
         
         this.isLoading = false;
-        console.log('✅ Load suppliers completed');
       },
       error: (error: any) => {
-        console.error('❌ Error loading suppliers:', error);
-        console.error('🔍 Error details:', {
-          status: error.status,
-          statusText: error.statusText,
-          url: error.url,
-          message: error.message
-        });
+        this.suppliers = [];
+        this.dataSource.data = [];
+        this.totalCount = 0;
         this.isLoading = false;
       }
     });
@@ -673,7 +706,6 @@ export class SuppliersListComponent implements OnInit {
             this.loadSuppliers();
           },
           error: (error: any) => {
-            console.error('Error deleting supplier:', error);
           }
         });
       }

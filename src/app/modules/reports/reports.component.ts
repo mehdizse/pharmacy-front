@@ -114,17 +114,17 @@ import { PdfService } from '../../core/services/pdf.service';
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <mat-form-field appearance="outline">
               <mat-label>Total factures</mat-label>
-              <input matInput [value]="currentReport.totalInvoicesAmount" readonly>
+              <input matInput [value]="formatCurrency(currentReport.totalInvoicesAmount)" readonly>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Total avoirs</mat-label>
-              <input matInput [value]="currentReport.totalCreditNotesAmount" readonly>
+              <input matInput [value]="formatCurrency(currentReport.totalCreditNotesAmount)" readonly>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Net à payer</mat-label>
-              <input matInput [value]="currentReport.netToPay" readonly>
+              <input matInput [value]="formatCurrency(currentReport.netToPay)" readonly>
             </mat-form-field>
           </div>
 
@@ -214,6 +214,7 @@ export class ReportsComponent implements OnInit {
   currentReport: MonthlyReport | null = null;
   isLoading = false;
   years: number[] = [];
+  errorMessage: string | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -227,9 +228,6 @@ export class ReportsComponent implements OnInit {
       month: [(new Date().getMonth() + 1).toString().padStart(2, '0'), Validators.required],
       year: [currentYear.toString(), Validators.required]
     });
-
-    console.log('🏗️ ReportsComponent initialized');
-    console.log('🗓️ Default form values:', this.reportForm.value);
   }
 
   ngOnInit(): void {
@@ -238,28 +236,16 @@ export class ReportsComponent implements OnInit {
   }
 
   generateReport(): void {
-    console.log('🧾 generateReport() called');
-    console.log('🧾 reportForm status:', this.reportForm.status);
-    console.log('🧾 reportForm value:', this.reportForm.value);
-
     if (this.reportForm.invalid) {
-      console.log('⚠️ reportForm invalid, aborting');
       return;
     }
 
     this.isLoading = true;
     const { month, year } = this.reportForm.value;
 
-    console.log('🔄 Requesting monthly report with:', { month, year });
-
     this.apiService.get<MonthlyReport>(`/api/reports/monthly/?month=${month}&year=${year}`).subscribe({
       next: (response: any) => {
-        console.log('✅ Monthly report API response received:', response);
-        console.log('📊 Response type:', typeof response);
-        console.log('🔍 Response keys:', response && typeof response === 'object' ? Object.keys(response) : null);
-
         const reportRaw = response && typeof response === 'object' && 'data' in response ? response.data : response;
-        console.log('📦 Using report payload:', reportRaw);
 
         // Map snake_case payloads to our MonthlyReport interface if needed
         const monthFallback = this.reportForm.value?.month;
@@ -315,18 +301,11 @@ export class ReportsComponent implements OnInit {
           supplierBreakdown: mappedSupplierBreakdown
         };
 
-        console.log('🧩 Mapped report:', mappedReport);
         this.currentReport = mappedReport;
         this.isLoading = false;
       },
       error: (error: any) => {
-        console.error('❌ Error generating report:', error);
-        console.error('🔍 Error details:', {
-          status: error?.status,
-          statusText: error?.statusText,
-          url: error?.url,
-          message: error?.message
-        });
+        this.errorMessage = 'Erreur lors de la génération du rapport';
         this.isLoading = false;
       }
     });

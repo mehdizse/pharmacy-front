@@ -101,30 +101,135 @@ html, body {
 /* Styles pour les notifications MatSnackBar */
 .mat-mdc-snack-bar-container {
   &.success-snackbar {
-    --mdc-snackbar-container-color: #10b981;
-    --mat-snack-bar-button-color: white;
+    background-color: #16A34A !important;
+    color: white !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px rgba(22, 163, 74, 0.3) !important;
+    border-left: 4px solid #10b981 !important;
+    backdrop-filter: blur(10px) !important;
+    margin-top: 16px !important;
+    
     .mdc-snackbar__label {
-      color: white;
-      font-weight: 500;
+      color: white !important;
+      font-weight: 600 !important;
+      font-size: 0.875rem !important;
+      letter-spacing: 0.025em !important;
+    }
+    
+    .mdc-button {
+      color: white !important;
+      font-weight: 600 !important;
+      background-color: rgba(255, 255, 255, 0.2) !important;
+      border-radius: 6px !important;
+      padding: 4px 12px !important;
+      transition: all 0.2s ease !important;
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.3) !important;
+      }
     }
   }
   
   &.error-snackbar {
-    --mdc-snackbar-container-color: #ef4444;
-    --mat-snack-bar-button-color: white;
+    background-color: #DC2626 !important;
+    color: white !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px rgba(220, 38, 38, 0.3) !important;
+    border-left: 4px solid #b91c1c !important;
+    backdrop-filter: blur(10px) !important;
+    margin-top: 16px !important;
+    
     .mdc-snackbar__label {
-      color: white;
-      font-weight: 500;
+      color: white !important;
+      font-weight: 600 !important;
+      font-size: 0.875rem !important;
+      letter-spacing: 0.025em !important;
+    }
+    
+    .mdc-button {
+      color: white !important;
+      font-weight: 600 !important;
+      background-color: rgba(255, 255, 255, 0.2) !important;
+      border-radius: 6px !important;
+      padding: 4px 12px !important;
+      transition: all 0.2s ease !important;
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.3) !important;
+      }
     }
   }
   
   &.info-snackbar {
-    --mdc-snackbar-container-color: #0284c7;
-    --mat-snack-bar-button-color: white;
+    background-color: #2563EB !important;
+    color: white !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3) !important;
+    border-left: 4px solid #1d4ed8 !important;
+    backdrop-filter: blur(10px) !important;
+    margin-top: 16px !important;
+    
     .mdc-snackbar__label {
-      color: white;
-      font-weight: 500;
+      color: white !important;
+      font-weight: 600 !important;
+      font-size: 0.875rem !important;
+      letter-spacing: 0.025em !important;
     }
+    
+    .mdc-button {
+      color: white !important;
+      font-weight: 600 !important;
+      background-color: rgba(255, 255, 255, 0.2) !important;
+      border-radius: 6px !important;
+      padding: 4px 12px !important;
+      transition: all 0.2s ease !important;
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.3) !important;
+      }
+    }
+  }
+}
+
+/* Forcer les styles sur tous les snackbars */
+.mdc-snackbar {
+  background-color: inherit !important;
+  border-radius: 12px !important;
+}
+
+.mdc-snackbar__surface {
+  background-color: inherit !important;
+  border-radius: 12px !important;
+}
+
+/* Animation d'entrée pour les notifications */
+@keyframes slideInFromTop {
+  0% {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutToTop {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+}
+
+.mat-mdc-snack-bar-container {
+  animation: slideInFromTop 0.3s ease-out !important;
+  
+  &.mat-mdc-snack-bar-exit {
+    animation: slideOutToTop 0.2s ease-in !important;
   }
 }
 

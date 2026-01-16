@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -41,10 +41,14 @@ import { DateService } from '../../core/services/date.service';
           <div class="period-info">
             <mat-icon class="period-icon">calendar_today</mat-icon>
             <span class="period-text">Période: <strong>{{ getCurrentPeriod() }}</strong></span>
-            <span class="period-badge">Actuelle</span>
+            <span class="period-badge" [class.hidden]="hasActiveFilters()">Actuelle</span>
           </div>
         </div>
-              </div>
+        <div class="header-date">
+          <mat-icon class="date-icon">today</mat-icon>
+          <span class="date-text">{{ getTodayDate() }}</span>
+        </div>
+      </div>
 
       <!-- Filters -->
       <div class="filters-section">
@@ -338,6 +342,28 @@ import { DateService } from '../../core/services/date.service';
       gap: 0.75rem;
     }
 
+    .header-date {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      background: var(--primary-soft);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-light);
+    }
+
+    .date-icon {
+      font-size: 1rem;
+      color: var(--primary-color);
+    }
+
+    .date-text {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
     .export-btn {
       display: flex;
       align-items: center;
@@ -422,6 +448,10 @@ import { DateService } from '../../core/services/date.service';
     }
 
     .active-filters.hidden {
+      display: none;
+    }
+
+    .period-badge.hidden {
       display: none;
     }
 
@@ -529,6 +559,7 @@ import { DateService } from '../../core/services/date.service';
       color: var(--text-primary);
       margin: 0 0 2px 0;
       line-height: 1.2;
+      text-align: center;
     }
 
     .kpi-primary .kpi-value {
@@ -543,6 +574,7 @@ import { DateService } from '../../core/services/date.service';
       font-weight: 400;
       opacity: 0.65;
       line-height: 1.3;
+      text-align: center;
     }
 
     .kpi-primary .kpi-label {
@@ -582,7 +614,6 @@ import { DateService } from '../../core/services/date.service';
       color: var(--text-secondary);
       font-weight: 500;
     }
-
     .table-wrapper {
       border-radius: 8px;
       border: 1px solid var(--border-light);
@@ -861,6 +892,19 @@ import { DateService } from '../../core/services/date.service';
     }
 
     /* Responsive */
+    @media (max-width: 1024px) {
+      .kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+      }
+      
+      .filters-container {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+      }
+    }
+  
+
     @media (max-width: 768px) {
       .dashboard-container {
         padding: 1rem;
@@ -871,10 +915,32 @@ import { DateService } from '../../core/services/date.service';
         align-items: flex-start;
         gap: 1rem;
       }
+      
+      .dashboard-title {
+        font-size: 1.5rem;
+      }
+
+      .period-info {
+        font-size: 0.8rem;
+      }
+
+      .header-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .new-invoice-btn {
+        flex: 1;
+        justify-content: center;
+      }
+
+      .export-btn {
+        padding: 0.5rem 1rem;
+      }
 
       .filters-container {
-        flex-direction: column;
-        align-items: stretch;
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
       }
 
       .filter-field {
@@ -885,11 +951,26 @@ import { DateService } from '../../core/services/date.service';
       .reset-btn {
         width: 100%;
         justify-content: center;
+        margin-top: 0.5rem;
       }
 
       .kpi-grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+      }
+      
+      .kpi-card {
+        padding: 1rem;
+        height: auto;
+        min-height: 80px;
+      }
+      
+      .kpi-value {
+        font-size: 1.5rem;
+      }
+      
+      .kpi-label {
+        font-size: 0.75rem;
       }
 
       .table-header {
@@ -897,18 +978,212 @@ import { DateService } from '../../core/services/date.service';
         align-items: flex-start;
         gap: 1rem;
       }
-
-      .invoices-table {
-        font-size: 0.875rem;
+      
+      /* Styles pour le tableau mobile */
+      .table-card {
+        padding: 0.75rem;
       }
-
-      .invoices-table th,
+      
+      .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -0.75rem;
+        padding: 0 0.75rem;
+      }
+      
+      .invoices-table {
+        min-width: 500px;
+        font-size: 0.85rem;
+      }
+      
+      .invoices-table th {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+        background: var(--background-color);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      
       .invoices-table td {
-        padding: 0.5rem;
+        padding: 0.75rem 0.5rem;
+        vertical-align: middle;
+        white-space: nowrap;
+      }
+      
+      .invoice-number {
+        flex-direction: row;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      
+      .invoice-text {
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+      
+      .supplier-name {
+        font-size: 0.8rem;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .amount {
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      
+      .date-text {
+        font-size: 0.8rem;
+      }
+      
+      .status-badge {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+        white-space: nowrap;
+      }
+      
+      .action-buttons {
+        gap: 0.25rem;
+      }
+      
+      .action-btn {
+        width: 28px;
+        height: 28px;
+      }
+      
+      .action-btn mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
       }
     }
-  `]
-})
+  
+
+    @media (max-width: 480px) {
+      .dashboard-container {
+        padding: 0.75rem;
+        width: 100%;
+      }
+      
+      .export-btn {
+        width: 100%;
+      }
+
+      .filters-section {
+        padding: 1rem;
+      }
+      
+      .filters-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+      
+      .filters-title {
+        font-size: 1rem;
+      }
+
+      .kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+      
+      .kpi-card {
+        padding: 0.75rem;
+        height: auto;
+        min-height: 70px;
+      }
+      
+      .kpi-header {
+        margin-bottom: 8px;
+      }
+      
+      .kpi-value {
+        font-size: 1.25rem;
+      }
+      
+      .kpi-label {
+        font-size: 0.7rem;
+      }
+      
+      .kpi-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+
+      .table-card {
+        padding: 1rem;
+        border-radius: 12px;
+      }
+      
+      .table-header {
+        padding-bottom: 0.75rem;
+      }
+      
+      .table-title-section h2 {
+        font-size: 1rem;
+      }
+      
+      .table-count {
+        font-size: 0.75rem;
+      }
+    }
+    /* Très petits écrans - approche simplifiée */
+    @media (max-width: 480px) {
+      .invoices-table {
+        min-width: 450px;
+        font-size: 0.8rem;
+      }
+      
+      .invoices-table th {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.7rem;
+      }
+      
+      .invoices-table td {
+        padding: 0.5rem 0.25rem;
+      }
+      
+      .supplier-name {
+        max-width: 100px;
+        font-size: 0.75rem;
+      }
+      
+      .invoice-text {
+        font-size: 0.75rem;
+      }
+      
+      .amount {
+        font-size: 0.8rem;
+      }
+      
+      .date-text {
+        font-size: 0.75rem;
+      }
+      
+      .status-badge {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.4rem;
+      }
+      
+      .action-btn {
+        width: 24px;
+        height: 24px;
+      }
+      
+      .action-btn mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+    }
+    `]
+  })
 export class DashboardComponent implements OnInit {
   kpis: DashboardKPI | null = null;
   isLoading = false;
@@ -955,7 +1230,46 @@ export class DashboardComponent implements OnInit {
 
   loadDashboardData(): void {
     this.isLoading = true;
-    this.apiService.get<DashboardKPI>('/api/reports/dashboard/').subscribe({
+    
+    // Construire l'URL avec les filtres de période
+    let url = '/api/reports/dashboard/';
+    const params: string[] = [];
+    
+    if (this.selectedMonth) {
+      params.push(`month=${this.selectedMonth}`);
+    }
+    if (this.selectedYear) {
+      params.push(`year=${this.selectedYear}`);
+    } else if (this.quickPeriod) {
+      // Gérer les périodes rapides
+      const currentDate = new Date();
+      switch (this.quickPeriod) {
+        case 'current':
+          params.push(`month=${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`);
+          params.push(`year=${currentDate.getFullYear()}`);
+          break;
+        case 'last':
+          const lastMonth = currentDate.getMonth() === 0 ? 11 : currentDate.getMonth() - 1;
+          const lastYear = lastMonth === 11 ? currentDate.getFullYear() - 1 : currentDate.getFullYear();
+          params.push(`month=${(lastMonth + 1).toString().padStart(2, '0')}`);
+          params.push(`year=${lastYear}`);
+          break;
+        case 'quarter':
+          // Pour le trimestre, on pourrait envoyer le trimestre actuel
+          params.push(`quarter=${Math.floor(currentDate.getMonth() / 3) + 1}`);
+          params.push(`year=${currentDate.getFullYear()}`);
+          break;
+        case 'year':
+          params.push(`year=${currentDate.getFullYear()}`);
+          break;
+      }
+    }
+    
+    if (params.length > 0) {
+      url += '?' + params.join('&');
+    }
+    
+    this.apiService.get<DashboardKPI>(url).subscribe({
       next: (response: ApiResponse<DashboardKPI>) => {
         // Le backend envoie les données directement, pas enveloppées dans response.data
         this.kpis = response.data || response;
@@ -1109,38 +1423,30 @@ export class DashboardComponent implements OnInit {
     
     // Pour total_suppliers, toujours utiliser les données globales
     if (key === 'total_suppliers') {
-      if (this.dynamicKpis) {
-        value = (this.dynamicKpis.overview as any)?.total_suppliers || 0;
-      } else if (this.kpis) {
-        value = (this.kpis.overview as any)?.total_suppliers || 0;
-      }
+      value = (this.kpis as any)?.total_suppliers || (this.kpis?.overview as any)?.total_suppliers || 0;
       return isNaN(value) ? 0 : value;
     }
     
-    // Si des filtres sont appliqués, utiliser les KPIs dynamiques
+    // Si des filtres sont appliqués, utiliser les données du backend pour la période filtrée
     if (this.selectedMonth || this.selectedYear) {
-      if (!this.dynamicKpis) return 0;
-      
       // Le backend envoie les données du mois courant même avec filtres
-      // On va calculer les KPIs depuis les factures filtrées
-      const currentMonthData = (this.dynamicKpis.overview as any)?.current_month;
-      
-      // Vérifier si les données du backend correspondent au filtre
-      const filterInfo = (this.dynamicKpis as any).filter_info;
-      const backendMonth = (this.dynamicKpis as any).period?.current_month;
-      const backendYear = (this.dynamicKpis as any).period?.current_year;
-      
-      // Si le backend n'a pas mis à jour les données, calculer depuis le tableau
-      if (filterInfo?.month !== backendMonth || filterInfo?.year !== backendYear) {
-        value = this.calculateKpiFromFilteredInvoices(key);
-      } else {
-        // Sinon utiliser les données du backend
-        value = currentMonthData?.[key] || 0;
+      // Utiliser les propriétés depuis overview (qui contient les compteurs)
+      switch (key) {
+        case 'invoice_count':
+          value = (this.kpis?.overview as any)?.current_month?.invoice_count || 0;
+          break;
+        case 'credit_note_count':
+          value = (this.kpis?.overview as any)?.current_month?.credit_note_count || 0;
+          break;
+        case 'net_amount':
+          value = (this.kpis as any)?.net_current_month || (this.kpis?.overview as any)?.current_month?.net_amount || 0;
+          break;
+        default:
+          value = 0;
       }
     } else {
       // Sinon, utiliser les KPIs du mois courant par défaut
-      if (!this.kpis) return 0;
-      value = (this.kpis.overview as any)?.current_month?.[key] || 0;
+      value = (this.kpis?.overview as any)?.current_month?.[key] || 0;
     }
     
     return isNaN(value) ? 0 : value;
@@ -1224,7 +1530,7 @@ export class DashboardComponent implements OnInit {
   getKpiPeriod(): string {
     if (this.selectedMonth && this.selectedYear) {
       const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
-      return `${monthNames[parseInt(this.selectedMonth) - 1]} ${this.selectedYear}`;
+      return monthNames[parseInt(this.selectedMonth) - 1] + ' ' + this.selectedYear;
     } else if (this.selectedMonth) {
       const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
       return monthNames[parseInt(this.selectedMonth) - 1];
@@ -1237,7 +1543,7 @@ export class DashboardComponent implements OnInit {
 
   formatEvolution(evolution: number): string {
     const sign = evolution >= 0 ? '+' : '';
-    return `${sign}${evolution.toFixed(1)}%`;
+    return sign + evolution.toFixed(1) + '%';
   }
 
   getEvolutionClass(evolution: number): string {
@@ -1287,13 +1593,13 @@ export class DashboardComponent implements OnInit {
   onMonthFilterChange(month: string): void {
     this.selectedMonth = month;
     this.applyFilters();
-    this.loadDynamicKpis(); // Charger les KPIs pour ce mois
+    this.loadDashboardData(); // Recharger les KPIs avec le nouveau filtre
   }
 
   onYearFilterChange(year: string): void {
     this.selectedYear = year;
     this.applyFilters();
-    this.loadDynamicKpis(); // Charger les KPIs pour cette année
+    this.loadDashboardData(); // Recharger les KPIs avec le nouveau filtre
   }
 
   applyFilters(): void {
@@ -1303,8 +1609,8 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    // Si des filtres sont appliqués, combiner factures et avoirs
-    if (!this.allInvoices || !this.allCreditNotes) {
+    // Si des filtres sont appliqués, filtrer seulement les factures
+    if (!this.allInvoices) {
       this.filteredInvoices = [];
       return;
     }
@@ -1348,47 +1654,8 @@ export class DashboardComponent implements OnInit {
       });
     }
 
-    // Filtrer les avoirs
-    let filteredCreditNotes = [...this.allCreditNotes];
-    
-    // Filtrer par mois/année pour les avoirs
-    if (this.selectedMonth || this.selectedYear) {
-      filteredCreditNotes = filteredCreditNotes.filter(creditNote => {
-        // Utiliser credit_note_date en priorité, sinon created_at
-        const dateToUse = creditNote.credit_note_date || creditNote.created_at;
-        if (!dateToUse) return false;
-        
-        const creditDate = new Date(dateToUse);
-        const creditMonth = String(creditDate.getMonth() + 1).padStart(2, '0');
-        const creditYear = String(creditDate.getFullYear());
-        
-        const monthMatch = !this.selectedMonth || creditMonth === this.selectedMonth;
-        const yearMatch = !this.selectedYear || creditYear === String(this.selectedYear);
-        
-        return monthMatch && yearMatch;
-      });
-    }
-    
-    // Filtrer par statut pour les avoirs (si applicable)
-    if (this.selectedStatus) {
-      filteredCreditNotes = filteredCreditNotes.filter(creditNote => {
-        const status = creditNote.status?.toUpperCase() || creditNote.payment_status?.toUpperCase() || '';
-        
-        switch (this.selectedStatus) {
-          case 'paid':
-            return status === 'PAID' || status === 'PAYEE';
-          case 'pending':
-            return status === 'PENDING' || status === 'EN_ATTENTE';
-          case 'overdue':
-            return status === 'OVERDUE' || status === 'EN_RETARD' || status === 'CANCELLED' || status === 'ANNULEE';
-          default:
-            return false;
-        }
-      });
-    }
-
-    // Combiner factures et avoirs filtrés
-    this.filteredInvoices = [...filteredInvoices, ...filteredCreditNotes];
+    // Afficher seulement les factures filtrées (pas les avoirs)
+    this.filteredInvoices = [...filteredInvoices];
     
     // Forcer la détection de changement
     this.cdr.detectChanges();
@@ -1418,7 +1685,7 @@ export class DashboardComponent implements OnInit {
 
       const byMonth = new Map<string, number>();
       for (const inv of invoices) {
-        const key = `${inv.year}-${String(inv.month).padStart(2, '0')}`;
+        const key = inv.year + '-' + String(inv.month).padStart(2, '0');
         const value = Number(inv.net_to_pay) || 0;
         byMonth.set(key, (byMonth.get(key) || 0) + value);
       }
@@ -1488,18 +1755,53 @@ export class DashboardComponent implements OnInit {
           maintainAspectRatio: false
         }
       });
-      console.log('✅ supplierChart rendered', { labels, data });
     } else {
-      console.log('⚠️ supplierChart canvas not found');
     }
+  }
+
+  getTodayDate(): string {
+    const today = new Date();
+    const options: Intl.DateTimeFormatOptions = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    };
+    return today.toLocaleDateString('fr-FR', options);
   }
 
   // Nouvelles méthodes pour les filtres améliorés
   getCurrentPeriod(): string {
-    const currentDate = new Date();
     const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
                       'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
-    return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+    
+    // Si des filtres sont actifs, afficher la période filtrée
+    if (this.selectedYear && this.selectedMonth) {
+      const monthIndex = parseInt(this.selectedMonth) - 1;
+      return monthNames[monthIndex] + ' ' + this.selectedYear;
+    } else if (this.selectedYear && !this.selectedMonth) {
+      return 'Année ' + this.selectedYear;
+    } else if (this.quickPeriod === 'current') {
+      const currentDate = new Date();
+      return monthNames[currentDate.getMonth()] + ' ' + currentDate.getFullYear();
+    } else if (this.quickPeriod === 'last') {
+      const currentDate = new Date();
+      const lastMonth = currentDate.getMonth() === 0 ? 11 : currentDate.getMonth() - 1;
+      const lastYear = lastMonth === 11 ? currentDate.getFullYear() - 1 : currentDate.getFullYear();
+      return monthNames[lastMonth] + ' ' + lastYear;
+    } else if (this.quickPeriod === 'quarter') {
+      const currentDate = new Date();
+      const currentQuarter = Math.floor(currentDate.getMonth() / 3);
+      const quarterNames = ['T1', 'T2', 'T3', 'T4'];
+      return quarterNames[currentQuarter] + ' ' + currentDate.getFullYear();
+    } else if (this.quickPeriod === 'year') {
+      const currentDate = new Date();
+      return 'Annee ' + currentDate.getFullYear();
+    }
+    
+    // Par défaut, retourner la période actuelle
+    const currentDate = new Date();
+    return monthNames[currentDate.getMonth()] + ' ' + currentDate.getFullYear();
   }
 
   hasActiveFilters(): boolean {
@@ -1542,6 +1844,7 @@ export class DashboardComponent implements OnInit {
         break;
     }
     this.applyFilters();
+    this.loadDashboardData(); // Recharger les KPIs avec la nouvelle période
   }
 
   onStatusFilterChange(value: string): void {
@@ -1597,9 +1900,9 @@ export class DashboardComponent implements OnInit {
     const percentage = previousCount > 0 ? Math.round((trend / previousCount) * 100) : 0;
     
     if (trend > 0) {
-      return { value: percentage, text: `+${percentage}% vs mois dernier`, type: 'up' };
+      return { value: percentage, text: '+' + percentage + '% vs mois dernier', type: 'up' };
     } else if (trend < 0) {
-      return { value: Math.abs(percentage), text: `-${Math.abs(percentage)}% vs mois dernier`, type: 'down' };
+      return { value: Math.abs(percentage), text: '-' + Math.abs(percentage) + '% vs mois dernier', type: 'down' };
     } else {
       return { value: 0, text: 'Stable', type: 'neutral' };
     }
@@ -1613,9 +1916,9 @@ export class DashboardComponent implements OnInit {
     const percentage = previousCount > 0 ? Math.round((trend / previousCount) * 100) : 0;
     
     if (trend > 0) {
-      return { value: percentage, text: `+${percentage}% vs mois dernier`, type: 'up' };
+      return { value: percentage, text: '+' + percentage + '% vs mois dernier', type: 'up' };
     } else if (trend < 0) {
-      return { value: Math.abs(percentage), text: `-${Math.abs(percentage)}% vs mois dernier`, type: 'down' };
+      return { value: Math.abs(percentage), text: '-' + Math.abs(percentage) + '% vs mois dernier', type: 'down' };
     } else {
       return { value: 0, text: 'Stable', type: 'neutral' };
     }
@@ -1628,9 +1931,9 @@ export class DashboardComponent implements OnInit {
     const trend = currentCount - previousCount;
     
     if (trend > 0) {
-      return { value: trend, text: `+${trend} nouveaux`, type: 'up' };
+      return { value: trend, text: '+' + trend + ' nouveaux', type: 'up' };
     } else if (trend < 0) {
-      return { value: Math.abs(trend), text: `-${Math.abs(trend)}`, type: 'down' };
+      return { value: Math.abs(trend), text: '-' + Math.abs(trend), type: 'down' };
     } else {
       return { value: 0, text: 'Stable', type: 'neutral' };
     }
@@ -1643,7 +1946,7 @@ export class DashboardComponent implements OnInit {
     
     return {
       count: simulatedCount,
-      text: `${simulatedCount} échéance${simulatedCount > 1 ? 's' : ''} ce mois`
+      text: simulatedCount + ' echeance' + (simulatedCount > 1 ? 's' : '') + ' ce mois'
     };
   }
 
@@ -1668,10 +1971,10 @@ export class DashboardComponent implements OnInit {
     
     if (calendarDiff === 0) return 'Aujourd\'hui';
     if (calendarDiff === 1) return 'Hier';
-    if (calendarDiff < 7) return `Il y a ${calendarDiff} jours`;
-    if (calendarDiff < 30) return `Il y a ${Math.floor(calendarDiff / 7)} semaine${Math.floor(calendarDiff / 7) > 1 ? 's' : ''}`;
-    if (calendarDiff < 365) return `Il y a ${Math.floor(calendarDiff / 30)} mois`;
-    return `Il y a ${Math.floor(calendarDiff / 365)} an${Math.floor(calendarDiff / 365) > 1 ? 's' : ''}`;
+    if (calendarDiff < 7) return 'Il y a ' + calendarDiff + ' jours';
+    if (calendarDiff < 30) return 'Il y a ' + Math.floor(calendarDiff / 7) + ' semaine' + (Math.floor(calendarDiff / 7) > 1 ? 's' : '');
+    if (calendarDiff < 365) return 'Il y a ' + Math.floor(calendarDiff / 30) + ' mois';
+    return 'Il y a ' + Math.floor(calendarDiff / 365) + ' an' + (Math.floor(calendarDiff / 365) > 1 ? 's' : '');
   }
 
   getStatusClass(invoice: any): string {

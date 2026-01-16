@@ -32,6 +32,33 @@ export class ApiService {
     return headers;
   }
 
+  private getHeadersWithCSRF(): HttpHeaders {
+    const token = localStorage.getItem('auth_token');
+    const csrfToken = this.getCookie('csrftoken');
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+    });
+    
+    if (token) {
+      headers = headers.set('Authorization', `Token ${token}`);
+    }
+    
+    if (csrfToken) {
+      headers = headers.set('X-CSRFTOKEN', csrfToken);
+    }
+    
+    return headers;
+  }
+
+  private getCookie(name: string): string {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      return parts.pop()?.split(';').shift() || '';
+    }
+    return '';
+  }
+
   private handleError(error: HttpErrorResponse): Observable<never> {
     const apiError: ApiError = {
       message: error.error?.message || error.message || 'Une erreur est survenue',

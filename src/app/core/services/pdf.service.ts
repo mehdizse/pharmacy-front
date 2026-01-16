@@ -89,7 +89,7 @@ export class PdfService {
     
     const tableData = [
       ['Description', 'Montant'],
-      ['Net à payer', `${netToPay.toFixed(2)} DZD`]
+      ['Net à payer', this.formatCurrency(netToPay)]
     ];
 
     autoTable(doc, {
@@ -97,7 +97,7 @@ export class PdfService {
       body: tableData.slice(1),
       startY: yPosition,
       theme: 'grid',
-      styles: { fontSize: 10 },
+      styles: { fontSize: 9, textColor: 80 },
       headStyles: { fillColor: [0, 102, 204], textColor: 255 },
       columnStyles: {
         0: { cellWidth: 120 },
@@ -166,10 +166,17 @@ export class PdfService {
     doc.text(`Facture associée: ${creditNote.invoice?.invoiceNumber || 'N/A'}`, 20, yPosition);
     yPosition += 8;
 
-    // Tableau des informations
     const tableData = [
       ['Description', 'Montant'],
-      ['Montant de l\'avoir', `${(creditNote.amount || 0).toFixed(2)} DZD`],
+      ['Numéro d\'avoir', creditNote.creditNoteNumber || 'N/A'],
+      ['Date', this.dateService.formatDate(creditNote.creditDate) || 'N/A'],
+      ['Fournisseur', 
+        creditNote.invoice?.supplier?.name || 
+        (creditNote as any).supplier_name || 
+        (creditNote as any).supplier || 
+        'N/A'
+      ],
+      ['Montant de l\'avoir', this.formatCurrency(creditNote.amount || 0)],
       ['Motif', creditNote.reason || 'N/A'],
       ['Statut', this.getCreditNoteStatusText(creditNote.status) || 'N/A']
     ];
@@ -179,7 +186,7 @@ export class PdfService {
       body: tableData.slice(1),
       startY: yPosition,
       theme: 'grid',
-      styles: { fontSize: 10 },
+      styles: { fontSize: 9, textColor: 80 },
       headStyles: { fillColor: [220, 53, 69], textColor: 255 },
       columnStyles: {
         0: { cellWidth: 100 },
@@ -220,9 +227,9 @@ export class PdfService {
 
     const summaryData = [
       ['Description', 'Montant'],
-      ['Total factures', `${report.totalInvoicesAmount.toFixed(2)} DZD`],
-      ['Total avoirs', `${report.totalCreditNotesAmount.toFixed(2)} DZD`],
-      ['Net à payer', `${report.netToPay.toFixed(2)} DZD`],
+      ['Total factures', this.formatCurrency(report.totalInvoicesAmount)],
+      ['Total avoirs', this.formatCurrency(report.totalCreditNotesAmount)],
+      ['Net à payer', this.formatCurrency(report.netToPay)],
       ['Nombre de factures', report.invoicesCount.toString()],
       ['Nombre d\'avoirs', report.creditNotesCount.toString()]
     ];
@@ -232,10 +239,10 @@ export class PdfService {
       body: summaryData.slice(1),
       startY: yPosition,
       theme: 'grid',
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [0, 102, 204], textColor: 255 },
+      styles: { fontSize: 9, textColor: 80 },
+      headStyles: { fillColor: [0, 102, 204], textColor: 255, halign: 'center' },
       columnStyles: {
-        0: { cellWidth: 120 },
+        0: { cellWidth: 120, halign: 'center' },
         1: { cellWidth: 60, halign: 'right' }
       }
     });
@@ -249,15 +256,15 @@ export class PdfService {
       yPosition += 10;
 
       const supplierData = [
-        ['Fournisseur', 'Factures', 'Avoirs', 'Net']
+        ['Fournisseur', 'Total Factures', 'Total Avoirs', 'Net']
       ];
 
       report.supplierBreakdown.forEach(supplier => {
         supplierData.push([
           supplier.supplier.name,
-          `${supplier.totalAmount.toFixed(2)} DZD`,
-          `${supplier.totalCreditAmount.toFixed(2)} DZD`,
-          `${supplier.netAmount.toFixed(2)} DZD`
+          this.formatCurrency(supplier.totalAmount),
+          this.formatCurrency(supplier.totalCreditAmount),
+          this.formatCurrency(supplier.netAmount)
         ]);
       });
 
@@ -266,13 +273,13 @@ export class PdfService {
         body: supplierData.slice(1),
         startY: yPosition,
         theme: 'grid',
-        styles: { fontSize: 10 },
-        headStyles: { fillColor: [0, 102, 204], textColor: 255 },
+        styles: { fontSize: 9, textColor: 80 },
+        headStyles: { fillColor: [0, 102, 204], textColor: 255, halign: 'center' },
         columnStyles: {
-          0: { cellWidth: 100 },
-          1: { cellWidth: 60, halign: 'right' },
-          2: { cellWidth: 60, halign: 'right' },
-          3: { cellWidth: 60, halign: 'right' }
+          0: { cellWidth: 60, halign: 'center' },
+          1: { cellWidth: 40, halign: 'right' },
+          2: { cellWidth: 40, halign: 'right' },
+          3: { cellWidth: 40, halign: 'right' }
         }
       });
 
@@ -288,6 +295,21 @@ export class PdfService {
 
     // Téléchargement
     doc.save(`rapport_${report.month}_${report.year}.pdf`);
+  }
+
+  private formatCurrency(amount: number): string {
+    if (isNaN(amount) || amount === null || amount === undefined) {
+      return '0,00 DA';
+    }
+    // Formatage avec espacement tous les 3 chiffres
+    const parts = amount.toFixed(2).split('.');
+    let integerPart = parts[0];
+    const decimalPart = parts[1];
+    
+    // Ajouter espacement tous les 3 chiffres
+    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    
+    return integerPart + ',' + decimalPart + ' DA';
   }
 
   private getStatusText(status: string): string {

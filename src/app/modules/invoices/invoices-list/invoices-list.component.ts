@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -12,6 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { RouterModule } from '@angular/router';
 
 import { Invoice, InvoiceStatus } from '../../../shared/models/business.model';
@@ -38,6 +39,7 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
     MatSelectModule,
     MatTooltipModule,
     MatChipsModule,
+    MatPaginatorModule,
     RouterModule
   ],
   template: `
@@ -49,18 +51,8 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
           <div class="page-info">
             <mat-icon class="page-icon">receipt</mat-icon>
             <span class="page-text">Gestion des factures fournisseurs</span>
-            <span class="page-badge">{{ dataSource.filteredData.length }} facture{{ dataSource.filteredData.length > 1 ? 's' : '' }}</span>
+            <span class="page-badge">{{ (hasActiveFiltersFlag ? filteredCount : totalCount) || dataSource.filteredData.length }} facture{{ ((hasActiveFiltersFlag ? filteredCount : totalCount) || dataSource.filteredData.length) > 1 ? 's' : '' }}</span>
           </div>
-        </div>
-        <div class="header-actions">
-          <button mat-stroked-button class="export-btn">
-            <mat-icon>download</mat-icon>
-            Exporter
-          </button>
-          <button mat-flat-button color="primary" routerLink="/invoices/new" class="new-invoice-btn">
-            <mat-icon>add</mat-icon>
-            Nouvelle facture
-          </button>
         </div>
       </div>
 
@@ -250,6 +242,20 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
           </div>
         </div>
       </div>
+
+      <!-- Paginator -->
+      <mat-paginator 
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        [pageSize]="20"
+        showFirstLastButtons
+        showPageSizeSelect
+        aria-label="Pagination des factures"
+        itemsPerPageLabel="Éléments par page"
+        nextPageLabel="Page suivante"
+        previousPageLabel="Page précédente"
+        firstPageLabel="Première page"
+        lastPageLabel="Dernière page">
+      </mat-paginator>
 
       <!-- Loading State -->
       <div *ngIf="isLoading" class="loading-overlay">
@@ -752,7 +758,7 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
     }
   `]
 })
-export class InvoicesListComponent implements OnInit {
+export class InvoicesListComponent implements OnInit, AfterViewInit {
   invoices: Invoice[] = [];
   dataSource = new MatTableDataSource<Invoice>();
   displayedColumns: string[] = [
@@ -765,6 +771,13 @@ export class InvoicesListComponent implements OnInit {
     'actions'
   ];
   isLoading = false;
+  totalCount = 0;
+  filteredCount = 0; // Nombre de résultats filtrés
+  hasActiveFiltersFlag = false; // Suivi des filtres actifs
+  pageSize = 20; // 20 factures par page
+  currentPage = 0;
+  
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
   
   // Properties for filters
   currentStatus: string = '';
@@ -774,7 +787,8 @@ export class InvoicesListComponent implements OnInit {
     private apiService: ApiService,
     private pdfService: PdfService,
     private dateService: DateService,
-    private confirmationService: ConfirmationService
+    private confirmationService: ConfirmationService,
+    private cdr: ChangeDetectorRef
   ) {
     // Initialiser le locale français pour les dates
     this.dateService.initFrenchLocale();
@@ -791,132 +805,161 @@ export class InvoicesListComponent implements OnInit {
     };
   }
 
-  loadInvoices(): void {
+  ngAfterViewInit(): void {
+    // Configurer le paginator pour utiliser notre pagination personnalisée
+    this.paginator.page.subscribe((event: PageEvent) => {
+      this.pageSize = event.pageSize;
+      this.currentPage = event.pageIndex;
+      // Toujours recharger les données pour maintenir les filtres
+      this.handlePageChange();
+    });
+    
+    // Configurer les labels français
+    this.paginator._intl.itemsPerPageLabel = "Éléments par page";
+    this.paginator._intl.nextPageLabel = "Page suivante";
+    this.paginator._intl.previousPageLabel = "Page précédente";
+    this.paginator._intl.firstPageLabel = "Première page";
+    this.paginator._intl.lastPageLabel = "Dernière page";
+    this.paginator._intl.getRangeLabel = (page: number, pageSize: number, length: number) => {
+      if (length === 0 || pageSize === 0) {
+        return `0 sur ${length}`;
+      }
+      length = Math.max(length, 0);
+      const startIndex = page * pageSize;
+      const endIndex = startIndex < length ? Math.min(startIndex + pageSize, length) : startIndex + pageSize;
+      return `${startIndex + 1} - ${endIndex} sur ${length}`;
+    };
+  }
+
+  loadInvoices(searchTerm?: string, status?: string, period?: string): void {
     this.isLoading = true;
     
-    this.apiService.get<Invoice[]>('/api/invoices/').subscribe({
+    // Vérifier si des filtres sont actifs
+    this.hasActiveFiltersFlag = !!(searchTerm?.trim() || status || period);
+    
+    const page = this.currentPage + 1; // API utilise 1-based, Angular utilise 0-based
+    let url = `/api/invoices/?page=${page}&page_size=${this.pageSize}`;
+    
+    // Ajouter les paramètres de recherche et filtres
+    if (searchTerm && searchTerm.trim()) {
+      url += `&search=${encodeURIComponent(searchTerm.trim())}`;
+    }
+    if (status) {
+      url += `&status=${status}`;
+    }
+    if (period) {
+      url += `&period=${period}`;
+    }
+    
+    this.apiService.get<any>(url).subscribe({
       next: (response: any) => {
-        
-        // Handle different response formats
         if (response && typeof response === 'object') {
-          if ('data' in response) {
-            this.invoices = response.data || [];
-          } else if ('results' in response) {
+          if ('results' in response) {
+            // Pagination format
             this.invoices = response.results || [];
+            // Utiliser filteredCount si des filtres sont actifs, sinon totalCount
+            if (this.hasActiveFiltersFlag) {
+              this.filteredCount = response.count || 0;
+            } else {
+              this.totalCount = response.count || 0;
+              this.filteredCount = this.totalCount; // Synchroniser si pas de filtres
+            }
+          } else if ('data' in response) {
+            this.invoices = response.data || [];
+            const count = this.invoices.length;
+            if (this.hasActiveFiltersFlag) {
+              this.filteredCount = count;
+            } else {
+              this.totalCount = count;
+              this.filteredCount = count;
+            }
           } else {
             this.invoices = Array.isArray(response) ? response : [];
+            const count = this.invoices.length;
+            if (this.hasActiveFiltersFlag) {
+              this.filteredCount = count;
+            } else {
+              this.totalCount = count;
+              this.filteredCount = count;
+            }
           }
         } else {
           this.invoices = [];
+          if (this.hasActiveFiltersFlag) {
+            this.filteredCount = 0;
+          } else {
+            this.totalCount = 0;
+            this.filteredCount = 0;
+          }
         }
         
-        // Map API response to match our interface
-        this.invoices = this.invoices.map((invoice: any) => ({
+        // Mapper les données
+        const mappedInvoices = this.invoices.map((invoice: any) => ({
           ...invoice,
-          invoiceNumber: invoice.invoice_number,
-          invoiceDate: invoice.invoice_date,
+          invoiceNumber: invoice.invoice_number || 'N/A',
+          invoiceDate: invoice.invoice_date || invoice.created_at,
           dueDate: invoice.due_date,
-          netToPay: parseFloat(invoice.net_to_pay),
+          netToPay: parseFloat(invoice.net_to_pay) || 0,
           supplier: {
-            name: invoice.supplier_name,
-            code: invoice.supplier_code
+            name: invoice.supplier_name || invoice.supplier?.name || 'Non spécifié',
+            code: invoice.supplier_code || ''
           },
-          status: invoice.status || 'PENDING'
+          status: invoice.status || invoice.payment_status || 'PENDING'
         }));
         
-        this.dataSource.data = this.invoices;
+        // Configurer le dataSource SANS paginator (on gère manuellement)
+        this.dataSource.data = mappedInvoices;
+        
+        // Mettre à jour les infos du paginator avec le bon compteur
+        const currentCount = this.hasActiveFiltersFlag ? this.filteredCount : this.totalCount;
+        this.paginator.length = currentCount;
+        this.paginator.pageSize = this.pageSize;
+        this.paginator.pageIndex = this.currentPage;
         
         this.isLoading = false;
       },
       error: (error: any) => {
         this.invoices = [];
-        this.dataSource.data = this.invoices;
+        this.dataSource.data = [];
+        this.totalCount = 0;
         this.isLoading = false;
       }
     });
   }
 
   applyFilter(event: Event): void {
-    if (!this.invoices || this.invoices.length === 0) {
-      return;
-    }
-    
     const filterValue = (event.target as HTMLInputElement).value;
     
-    this.dataSource.filter = filterValue.trim().toLowerCase();
+    // Réinitialiser la pagination au début lors d'une nouvelle recherche
+    this.currentPage = 0;
+    
+    // Recharger les données depuis l'API avec les filtres
+    this.loadInvoices(filterValue, this.currentStatus, this.currentPeriod);
   }
 
   filterByStatus(status: string): void {
     this.currentStatus = status;
-    
-    if (!this.invoices || this.invoices.length === 0) {
-      return;
-    }
-    
-    // Set custom filter predicate for status filtering
-    this.dataSource.filterPredicate = (data: Invoice, filter: string) => {
-      return !filter || data.status === filter;
-    };
-    
-    // Apply filter
-    this.dataSource.filter = status || '';
+    // Réinitialiser la pagination et recharger avec les filtres
+    this.currentPage = 0;
+    const searchInput = document.querySelector('input[placeholder="Rechercher..."]') as HTMLInputElement;
+    const searchValue = searchInput ? searchInput.value : '';
+    this.loadInvoices(searchValue, status, this.currentPeriod);
   }
 
   filterByPeriod(period: string): void {
     this.currentPeriod = period;
-    
-    if (!this.invoices || this.invoices.length === 0) {
-      return;
-    }
-    
-    if (!period) {
-      // Reset to all invoices
-      this.dataSource.data = this.invoices;
-      // Restore the original filter predicate for search
-      this.dataSource.filterPredicate = (data: Invoice, filter: string) => {
-        const filterStr = filter.trim().toLowerCase();
-        return data.invoiceNumber.toLowerCase().includes(filterStr) ||
-               data.supplier.name.toLowerCase().includes(filterStr);
-      };
-      return;
-    }
-    
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0 = Janvier, 1 = Février, etc.
-    
-    // Set custom filter predicate for period filtering
-    this.dataSource.filterPredicate = (data: Invoice, filter: string) => {
-      if (!data.invoiceDate) return false;
-      
-      const invoiceDate = new Date(data.invoiceDate);
-      const invoiceYear = invoiceDate.getFullYear();
-      const invoiceMonth = invoiceDate.getMonth();
-      
-      switch (period) {
-        case 'current':
-          return invoiceYear === currentYear && invoiceMonth === currentMonth;
-          
-        case 'last':
-          const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-          const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-          return invoiceYear === lastMonthYear && invoiceMonth === lastMonth;
-          
-        case 'quarter':
-          const currentQuarter = Math.floor(currentMonth / 3);
-          const invoiceQuarter = Math.floor(invoiceMonth / 3);
-          return invoiceYear === currentYear && invoiceQuarter === currentQuarter;
-          
-        case 'year':
-          return invoiceYear === currentYear;
-          
-        default:
-          return true;
-      }
-    };
-    
-    // Apply the filter
-    this.dataSource.filter = 'period_filter';
+    // Réinitialiser la pagination et recharger avec les filtres
+    this.currentPage = 0;
+    const searchInput = document.querySelector('input[placeholder="Rechercher..."]') as HTMLInputElement;
+    const searchValue = searchInput ? searchInput.value : '';
+    this.loadInvoices(searchValue, this.currentStatus, period);
+  }
+
+  // Méthode pour gérer les changements de pagination avec filtres
+  private handlePageChange(): void {
+    const searchInput = document.querySelector('input[placeholder="Rechercher..."]') as HTMLInputElement;
+    const searchValue = searchInput ? searchInput.value : '';
+    this.loadInvoices(searchValue, this.currentStatus, this.currentPeriod);
   }
 
   generatePDF(invoice: Invoice): void {
@@ -931,7 +974,6 @@ export class InvoicesListComponent implements OnInit {
             this.loadInvoices();
           },
           error: (error: any) => {
-            console.error('Error deleting invoice:', error);
           }
         });
       }
@@ -950,7 +992,6 @@ export class InvoicesListComponent implements OnInit {
             this.loadInvoices();
           },
           error: (error: any) => {
-            console.error('Error marking invoice as paid:', error);
           }
         });
       }
@@ -997,23 +1038,23 @@ export class InvoicesListComponent implements OnInit {
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.currentStatus || this.currentPeriod || this.dataSource.filter);
+    return this.hasActiveFiltersFlag;
   }
 
   resetFilters(): void {
     this.currentStatus = '';
     this.currentPeriod = '';
-    this.dataSource.filter = '';
+    this.currentPage = 0;
+    this.hasActiveFiltersFlag = false;
     
-    // Restore original filter predicate for search
-    this.dataSource.filterPredicate = (data: Invoice, filter: string) => {
-      const filterStr = filter.trim().toLowerCase();
-      return data.invoiceNumber.toLowerCase().includes(filterStr) ||
-             data.supplier.name.toLowerCase().includes(filterStr);
-    };
+    // Vider le champ de recherche
+    const searchInput = document.querySelector('input[placeholder="Rechercher..."]') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.value = '';
+    }
     
-    // Reset to all invoices
-    this.dataSource.data = this.invoices;
+    // Recharger toutes les factures sans filtres
+    this.loadInvoices();
   }
 
   clearStatusFilter(): void {

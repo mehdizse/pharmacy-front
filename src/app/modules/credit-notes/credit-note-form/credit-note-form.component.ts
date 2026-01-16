@@ -138,19 +138,6 @@ import { NotificationService } from '../../../core/services/notification.service
               </mat-form-field>
             </div>
 
-            <!-- Statut -->
-            <div class="border rounded-lg p-4">
-              <h3 class="text-lg font-semibold mb-4">Statut</h3>
-              <mat-form-field appearance="outline">
-                <mat-label>Statut</mat-label>
-                <mat-select formControlName="status">
-                  <mat-option value="DRAFT">Brouillon</mat-option>
-                  <mat-option value="PENDING">En attente</mat-option>
-                  <mat-option value="APPLIED">Appliqué</mat-option>
-                </mat-select>
-              </mat-form-field>
-            </div>
-
             <!-- Actions -->
             <div class="flex justify-between">
               <button mat-stroked-button 
@@ -160,12 +147,6 @@ import { NotificationService } from '../../../core/services/notification.service
                 Annuler
               </button>
               <div class="space-x-4">
-                <button mat-stroked-button 
-                        type="button" 
-                        (click)="onSubmitAndNew()"
-                        [disabled]="creditNoteForm.invalid || isLoading">
-                  Enregistrer et nouveau
-                </button>
                 <button mat-raised-button 
                         color="primary" 
                         type="submit"
@@ -266,8 +247,7 @@ export class CreditNoteFormComponent implements OnInit {
       invoiceId: [null, Validators.required],
       creditDate: [new Date(), Validators.required],
       amount: [0, [Validators.required, Validators.min(0.01)]],
-      reason: [''],
-      status: ['DRAFT']
+      reason: ['']
     });
   }
 
@@ -288,17 +268,12 @@ export class CreditNoteFormComponent implements OnInit {
         this.errorMessage = null;
       }
       
-      // Log les changements du motif en temps réel
-      const reasonValue = this.creditNoteForm.get('reason')?.value;
-      console.log('🔍 MOTIF - Real-time reason field change:', reasonValue);
     });
   }
 
   loadSuppliers(): void {
-    console.log('🔍 MOTIF - Loading suppliers...');
     this.apiService.get<any[]>('/api/suppliers/').subscribe({
       next: (response: any) => {
-        console.log('🔍 MOTIF - Suppliers API response:', response);
         
         // Handle different response formats
         let suppliers: any[] = [];
@@ -313,19 +288,18 @@ export class CreditNoteFormComponent implements OnInit {
         }
         
         this.suppliers = suppliers;
-        console.log('🔍 MOTIF - Loaded suppliers:', this.suppliers);
-        console.log('🔍 MOTIF - Suppliers count:', this.suppliers.length);
       },
       error: (error: any) => {
-        console.error('🔍 MOTIF - Error loading suppliers:', error);
         this.suppliers = [];
       }
     });
   }
 
   loadInvoices(): void {
-    this.apiService.get<Invoice[]>('/api/invoices/').subscribe({
+    // Essayer avec page_size plus grand ou sans pagination
+    this.apiService.get<Invoice[]>('/api/invoices/?page_size=10000').subscribe({
       next: (response: any) => {
+        
         // Handle different response formats
         let invoices: Invoice[] = [];
         if (response && typeof response === 'object') {
@@ -333,6 +307,11 @@ export class CreditNoteFormComponent implements OnInit {
             invoices = response.data || [];
           } else if ('results' in response) {
             invoices = response.results || [];
+            // Si paginé, charger toutes les pages
+            if (response.next) {
+              this.loadAllPaginatedInvoices(response.results, response.next);
+              return;
+            }
           } else {
             invoices = Array.isArray(response) ? response : [];
           }
@@ -357,7 +336,7 @@ export class CreditNoteFormComponent implements OnInit {
               name: invoice.supplier_name,
               code: invoice.supplier_code
             },
-            status: invoice.status || 'PENDING'
+          status: invoice.status || 'PENDING'
           };
           
           return mappedInvoice;
@@ -367,7 +346,85 @@ export class CreditNoteFormComponent implements OnInit {
         this.filteredInvoices = [...this.invoices];
       },
       error: (error: any) => {
+        console.error('🔍 Error loading invoices:', error);
         this.invoices = [];
+      }
+    });
+  }
+
+  loadAllPaginatedInvoices(currentInvoices: any[], nextUrl: string): void {
+    // Extraire juste le chemin de l'URL complète
+    let correctedUrl = nextUrl;
+    if (nextUrl.startsWith('http')) {
+      // URL complète, extraire le chemin après le domaine
+      const url = new URL(nextUrl);
+      correctedUrl = url.pathname + url.search;
+    }
+    
+    this.apiService.get<Invoice[]>(correctedUrl).subscribe({
+      next: (response: any) => {
+        let newInvoices: any[] = [];
+        if (response && typeof response === 'object') {
+          if ('results' in response) {
+            newInvoices = response.results || [];
+          }
+        }
+        
+        const allInvoices = [...currentInvoices, ...newInvoices];
+        
+        if (response.next) {
+          // Continuer à charger les pages suivantes
+          this.loadAllPaginatedInvoices(allInvoices, response.next);
+        } else {
+          // Toutes les pages chargées, traiter les factures
+          
+          // Map API response to match our interface
+          this.invoices = allInvoices.map((invoice: any) => {
+            // Find supplier by name
+            const supplier = this.suppliers.find(s => 
+              s.name === invoice.supplier_name || 
+              s.code === invoice.supplier_code
+            );
+            
+            const mappedInvoice = {
+              ...invoice,
+              invoiceNumber: invoice.invoice_number,
+              invoiceDate: invoice.invoice_date,
+              dueDate: invoice.due_date,
+              netToPay: parseFloat(invoice.net_to_pay),
+              supplier: {
+                id: supplier?.id || null,
+                name: invoice.supplier_name,
+                code: invoice.supplier_code
+              },
+            status: invoice.status || 'PENDING'
+            };
+            
+            return mappedInvoice;
+          }).filter(invoice => invoice.status !== 'CANCELLED');
+          
+          // Initialize filtered invoices with all invoices
+          this.filteredInvoices = [...this.invoices];
+        }
+      },
+      error: (error: any) => {
+        console.error('🔍 Error loading paginated invoices:', error);
+        // En cas d'erreur, utiliser les factures déjà chargées
+        this.invoices = currentInvoices.map((invoice: any) => ({
+          ...invoice,
+          invoiceNumber: invoice.invoice_number,
+          invoiceDate: invoice.invoice_date,
+          dueDate: invoice.due_date,
+          netToPay: parseFloat(invoice.net_to_pay),
+          supplier: {
+            id: null,
+            name: invoice.supplier_name,
+            code: invoice.supplier_code
+          },
+          status: invoice.status || 'PENDING'
+        })).filter(invoice => invoice.status !== 'CANCELLED');
+        
+        this.filteredInvoices = [...this.invoices];
       }
     });
   }
@@ -402,8 +459,6 @@ export class CreditNoteFormComponent implements OnInit {
     
     // Mettre à jour le supplier dans le formulaire (si le champ existe)
     // Note: Le backend attend le supplier ID, mais on peut le déduire de la facture
-    console.log('🔍 MOTIF - Invoice selected:', selectedInvoice);
-    console.log('🔍 MOTIF - Supplier from invoice:', selectedInvoice.supplier);
   }
 
   formatDateForAPI(date: Date): string {
@@ -421,28 +476,20 @@ export class CreditNoteFormComponent implements OnInit {
         // Gérer différents formats de réponse API
         const creditNote = response && typeof response === 'object' && 'data' in response ? response.data : response;
         
-        console.log('🔍 MOTIF - Loading credit note:', creditNote);
-        console.log('🔍 MOTIF - Backend reason field:', creditNote.reason);
-        console.log('🔍 MOTIF - Backend motif field:', creditNote.motif);
-        
         // Extraire le motif correctement
         const motifValue = creditNote.reason || creditNote.motif || '';
-        console.log('🔍 MOTIF - Final motif value to set in form:', motifValue);
         
         this.creditNoteForm.patchValue({
           creditNoteNumber: creditNote.credit_note_number || creditNote.creditNoteNumber,
           invoiceId: creditNote.invoice_id || creditNote.invoice?.id,
           creditDate: new Date(creditNote.credit_note_date || creditNote.creditDate),
           amount: typeof creditNote.amount === 'string' ? parseFloat(creditNote.amount) : creditNote.amount,
-          reason: motifValue,
-          status: creditNote.status || 'DRAFT'
+          reason: motifValue
         });
         
-        console.log('🔍 MOTIF - Form reason field value after patch:', this.creditNoteForm.get('reason')?.value);
         this.isLoading = false;
       },
       error: (error: any) => {
-        console.log('🔍 MOTIF - Error loading credit note:', error);
         this.errorMessage = 'Erreur lors du chargement de l\'avoir';
         this.isLoading = false;
       }
@@ -451,19 +498,14 @@ export class CreditNoteFormComponent implements OnInit {
 
   onSubmit(): void {
     if (this.creditNoteForm.invalid) {
-      console.log('🔍 MOTIF - Form is invalid:', this.creditNoteForm.errors);
       return;
     }
 
     this.isLoading = true;
     const creditNoteData = this.creditNoteForm.value;
     
-    console.log('🔍 MOTIF - Form data before sending:', creditNoteData);
-    console.log('🔍 MOTIF - Reason field from form:', creditNoteData.reason);
-    
     // Find selected invoice (pour les logs et pour le supplier)
     const selectedInvoice = this.invoices.find(inv => inv.id === creditNoteData.invoiceId);
-    console.log('🔍 MOTIF - Selected invoice:', selectedInvoice);
     
     // Find supplier by name from the suppliers list
     let supplierId = null;
@@ -472,8 +514,6 @@ export class CreditNoteFormComponent implements OnInit {
         s.name === selectedInvoice.supplier.name
       );
       supplierId = supplier?.id || null;
-      console.log('🔍 MOTIF - Found supplier:', supplier);
-      console.log('🔍 MOTIF - Supplier ID:', supplierId);
     }
     
     // Map frontend field names to backend field names
@@ -483,45 +523,27 @@ export class CreditNoteFormComponent implements OnInit {
       credit_note_number: creditNoteData.creditNoteNumber,
       credit_note_date: this.formatDateForAPI(creditNoteData.creditDate),
       amount: creditNoteData.amount,
-      reason: creditNoteData.reason || '',
-      // status: optionnel, le backend mettra défaut
-      ...(creditNoteData.status && creditNoteData.status !== 'DRAFT' && { 
-        status: creditNoteData.status 
-      })
+      reason: creditNoteData.reason || ''
     };
 
-    console.log('🔍 MOTIF - Payload to send to backend:', payload);
-    console.log('🔍 MOTIF - Payload reason field:', payload.reason);
-
     if (this.isEditMode && this.creditNoteId) {
-      console.log('🔍 MOTIF - UPDATE mode - sending PUT to:', `/api/credit-notes/${this.creditNoteId}/`);
       this.apiService.put(`/api/credit-notes/${this.creditNoteId}/`, payload).subscribe({
         next: (response) => {
-          console.log('🔍 MOTIF - UPDATE success response:', response);
           this.notificationService.success('Avoir mis à jour avec succès');
           this.router.navigate(['/credit-notes']);
         },
         error: (error: any) => {
-          console.log('🔍 MOTIF - UPDATE error:', error);
-          console.log('🔍 MOTIF - UPDATE error details:', error.error);
           this.handleApiError(error);
           this.isLoading = false;
         }
       });
     } else {
-      console.log('🔍 MOTIF - CREATE mode - sending POST to: /api/credit-notes/');
       this.apiService.post('/api/credit-notes/', payload).subscribe({
         next: (response: any) => {
-          console.log('🔍 MOTIF - CREATE success response:', response);
-          console.log('🔍 MOTIF - CREATE response data:', response?.data);
-          console.log('🔍 MOTIF - CREATE response motif field:', (response?.data as any)?.motif);
-          console.log('🔍 MOTIF - CREATE response reason field:', (response?.data as any)?.reason);
           this.notificationService.success('Avoir créé avec succès');
           this.router.navigate(['/credit-notes']);
         },
         error: (error: any) => {
-          console.log('🔍 MOTIF - CREATE error:', error);
-          console.log('🔍 MOTIF - CREATE error details:', error.error);
           this.handleApiError(error);
           this.isLoading = false;
         }
@@ -537,8 +559,7 @@ export class CreditNoteFormComponent implements OnInit {
         invoiceId: null,
         creditDate: new Date(),
         amount: 0,
-        reason: '',
-        status: 'DRAFT'
+        reason: ''
       });
     }
   }

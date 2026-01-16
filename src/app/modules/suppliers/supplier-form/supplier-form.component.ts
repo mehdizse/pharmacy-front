@@ -165,7 +165,6 @@ export class SupplierFormComponent implements OnInit {
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
-    console.log('🔍 Route ID parameter:', id);
     if (id) {
       this.isEditMode = true;
       this.supplierId = id;
@@ -174,11 +173,9 @@ export class SupplierFormComponent implements OnInit {
   }
 
   loadSupplier(id: string): void {
-    console.log('🔄 Loading supplier with ID:', id);
     this.isLoading = true;
     this.apiService.get<Supplier>(`/api/suppliers/${id}/`).subscribe({
       next: (response: any) => {
-        console.log('✅ Supplier loaded:', response);
         // Handle different response formats
         let supplierData;
         if (response && typeof response === 'object') {
@@ -197,12 +194,10 @@ export class SupplierFormComponent implements OnInit {
           isActive: supplierData.is_active !== undefined ? supplierData.is_active : supplierData.isActive
         };
         
-        console.log('📝 Patching form with data:', mappedData);
         this.supplierForm.patchValue(mappedData);
         this.isLoading = false;
       },
       error: (error: any) => {
-        console.error('❌ Error loading supplier:', error);
         this.isLoading = false;
       }
     });
@@ -217,7 +212,6 @@ export class SupplierFormComponent implements OnInit {
     const supplierData = this.supplierForm.value;
 
     if (this.isEditMode && this.supplierId) {
-      console.log('💾 Updating supplier with ID:', this.supplierId);
       this.apiService.put(`/api/suppliers/${this.supplierId}/`, supplierData).subscribe({
         next: () => {
           this.snackBar.open('Fournisseur mis à jour avec succès', 'Fermer', {
@@ -226,7 +220,6 @@ export class SupplierFormComponent implements OnInit {
           this.router.navigate(['/suppliers']);
         },
         error: (error: any) => {
-          console.error('Error updating supplier:', error);
           this.isLoading = false;
         }
       });
@@ -239,7 +232,6 @@ export class SupplierFormComponent implements OnInit {
           this.router.navigate(['/suppliers']);
         },
         error: (error: any) => {
-          console.error('Error creating supplier:', error);
           this.isLoading = false;
         }
       });
