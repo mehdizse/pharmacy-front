@@ -37,9 +37,10 @@ import { ApiResponse } from '../../../shared/models/api.model';
         <h1 class="text-3xl font-bold mb-2">
           {{ isEditMode ? 'Modifier' : 'Nouveau' }} fournisseur
         </h1>
-        <p class="text-blue-100">
-          {{ isEditMode ? 'Modifier les informations' : 'Ajouter un nouveau fournisseur' }}
-        </p>
+        <div class="page-info">
+          <mat-icon class="page-icon">{{ isEditMode ? 'edit' : 'add' }}</mat-icon>
+          <span class="page-text">{{ isEditMode ? 'Modifier les informations du fournisseur' : 'Ajouter un nouveau fournisseur' }}</span>
+        </div>
       </div>
 
       <mat-card class="max-w-2xl mx-auto">
@@ -111,7 +112,8 @@ import { ApiResponse } from '../../../shared/models/api.model';
                 <button mat-stroked-button 
                         type="button" 
                         (click)="onSubmitAndNew()"
-                        [disabled]="supplierForm.invalid || isLoading">
+                        [disabled]="supplierForm.invalid || isLoading"
+                        *ngIf="!isEditMode">
                   Enregistrer et nouveau
                 </button>
                 <button mat-raised-button 
@@ -129,6 +131,41 @@ import { ApiResponse } from '../../../shared/models/api.model';
     </div>
   `,
   styles: [`
+    .page-header {
+      text-align: left;
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: var(--surface-color);
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+      border: 1px solid var(--border-light);
+    }
+
+    .page-header h1 {
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 0.75rem 0;
+    }
+
+    .page-info {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .page-icon {
+      font-size: 1rem;
+      color: var(--text-secondary);
+    }
+
+    .page-text {
+      font-weight: 400;
+    }
+
     .mat-mdc-form-field {
       width: 100%;
     }

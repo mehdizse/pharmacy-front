@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Invoice, CreditNote, MonthlyReport, Supplier } from '../../shared/models/business.model';
 import { DateService } from './date.service';
+import { environment } from '../../../environments/environment';
 
 // Extension du type jsPDF pour inclure autoTable
 declare module 'jspdf' {
@@ -45,15 +46,15 @@ export class PdfService {
     // Informations pharmacie
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text('Pharmacie Centrale', 20, yPosition);
+    doc.text(environment.pharmacy.name, 20, yPosition);
     yPosition += 6;
-    doc.text('123 Rue de la Santé', 20, yPosition);
+    doc.text(environment.pharmacy.address, 20, yPosition);
     yPosition += 6;
-    doc.text('75001 Paris, France', 20, yPosition);
+    doc.text(environment.pharmacy.city, 20, yPosition);
     yPosition += 6;
-    doc.text('Tél: 01 23 45 67 89', 20, yPosition);
+    doc.text(`Tél: ${environment.pharmacy.phone}`, 20, yPosition);
     yPosition += 6;
-    doc.text('Email: contact@pharmacie.fr', 20, yPosition);
+    doc.text(`Email: ${environment.pharmacy.email}`, 20, yPosition);
     yPosition += 15;
 
     // Informations facture
@@ -145,15 +146,15 @@ export class PdfService {
     // Informations pharmacie
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text('Pharmacie Centrale', 20, yPosition);
+    doc.text(environment.pharmacy.name, 20, yPosition);
     yPosition += 6;
-    doc.text('123 Rue de la Santé', 20, yPosition);
+    doc.text(environment.pharmacy.address, 20, yPosition);
     yPosition += 6;
-    doc.text('75001 Paris, France', 20, yPosition);
+    doc.text(environment.pharmacy.city, 20, yPosition);
     yPosition += 6;
-    doc.text('Tél: 01 23 45 67 89', 20, yPosition);
+    doc.text(`Tél: ${environment.pharmacy.phone}`, 20, yPosition);
     yPosition += 6;
-    doc.text('Email: contact@pharmacie.fr', 20, yPosition);
+    doc.text(`Email: ${environment.pharmacy.email}`, 20, yPosition);
     yPosition += 15;
 
     // Informations avoir
@@ -177,8 +178,7 @@ export class PdfService {
         'N/A'
       ],
       ['Montant de l\'avoir', this.formatCurrency(creditNote.amount || 0)],
-      ['Motif', creditNote.reason || 'N/A'],
-      ['Statut', this.getCreditNoteStatusText(creditNote.status) || 'N/A']
+      ['Motif', creditNote.reason || 'N/A']
     ];
 
     autoTable(doc, {

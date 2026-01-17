@@ -34,16 +34,14 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
     RouterModule
   ],
   template: `
-    <div class="suppliers-container">
+    <div class="p-6">
       <!-- Header -->
-      <div class="suppliers-header">
-        <div>
-          <h1 class="suppliers-title">Fournisseurs</h1>
-          <div class="page-info">
-            <mat-icon class="page-icon">business</mat-icon>
-            <span class="page-text">Gestion des fournisseurs</span>
-            <span class="page-badge">{{ suppliers.length }} fournisseur{{ suppliers.length > 1 ? 's' : '' }}</span>
-          </div>
+      <div class="page-header">
+        <h1 class="text-3xl font-bold mb-2">Fournisseurs</h1>
+        <div class="page-info">
+          <mat-icon class="page-icon">business</mat-icon>
+          <span class="page-text">Gestion des fournisseurs</span>
+          <span class="page-badge">{{ suppliers.length }} fournisseur{{ suppliers.length > 1 ? 's' : '' }}</span>
         </div>
       </div>
 
@@ -128,13 +126,6 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
                               class="action-btn">
                         <mat-icon>edit</mat-icon>
                       </button>
-                      <button mat-icon-button 
-                              color="warn"
-                              (click)="deleteSupplier(supplier)"
-                              matTooltip="Supprimer"
-                              class="action-btn">
-                        <mat-icon>delete</mat-icon>
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -186,16 +177,8 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
     </div>
   `,
   styles: [`
-    .suppliers-container {
-      padding: 2rem;
-      max-width: 1280px;
-      margin: 0 auto;
-    }
-
-    .suppliers-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+    .page-header {
+      text-align: left;
       margin-bottom: 2rem;
       padding: 1.5rem;
       background: var(--surface-color);
@@ -204,7 +187,7 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
       border: 1px solid var(--border-light);
     }
 
-    .suppliers-title {
+    .page-header h1 {
       font-size: 2rem;
       font-weight: 600;
       color: var(--text-primary);
@@ -212,8 +195,7 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
     }
 
     .page-info {
-      display: flex;
-      align-items: center;
+      text-align: left;
       gap: 0.5rem;
       font-size: 0.875rem;
       color: var(--text-secondary);
@@ -222,10 +204,13 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
     .page-icon {
       font-size: 1rem;
       color: var(--text-secondary);
+      margin-right: 0.25rem;
+      vertical-align: middle;
     }
 
     .page-text {
       font-weight: 400;
+      margin-right: 0.5rem;
     }
 
     .page-badge {

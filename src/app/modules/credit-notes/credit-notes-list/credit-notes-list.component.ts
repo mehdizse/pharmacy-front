@@ -46,14 +46,12 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
   template: `
     <div class="credit-notes-container">
       <!-- Header -->
-      <div class="credit-notes-header">
-        <div>
-          <h1 class="credit-notes-title">Avoirs</h1>
-          <div class="page-info">
-            <mat-icon class="page-icon">assignment_return</mat-icon>
-            <span class="page-text">Gestion des avoirs et notes de crédit</span>
-            <span class="page-badge">{{ totalCount || dataSource.filteredData.length }} avoir{{ (totalCount || dataSource.filteredData.length) > 1 ? 's' : '' }}</span>
-          </div>
+      <div class="page-header">
+        <h1 class="text-3xl font-bold mb-2">Avoirs</h1>
+        <div class="page-info">
+          <mat-icon class="page-icon">assignment_return</mat-icon>
+          <span class="page-text">Gestion des avoirs et notes de crédit</span>
+          <span class="page-badge">{{ totalCount || dataSource.filteredData.length }} avoir{{ (totalCount || dataSource.filteredData.length) > 1 ? 's' : '' }}</span>
         </div>
       </div>
 
@@ -262,10 +260,8 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
       margin: 0 auto;
     }
 
-    .credit-notes-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+    .page-header {
+      text-align: left;
       margin-bottom: 2rem;
       padding: 1.5rem;
       background: var(--surface-color);
@@ -274,7 +270,7 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
       border: 1px solid var(--border-light);
     }
 
-    .credit-notes-title {
+    .page-header h1 {
       font-size: 2rem;
       font-weight: 600;
       color: var(--text-primary);
@@ -284,6 +280,8 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
     .page-info {
       display: flex;
       align-items: center;
+      justify-content: flex-start;
+      width: 100%;
       gap: 0.5rem;
       font-size: 0.875rem;
       color: var(--text-secondary);

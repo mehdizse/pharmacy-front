@@ -45,14 +45,12 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
   template: `
     <div class="invoices-container">
       <!-- Header -->
-      <div class="invoices-header">
-        <div>
-          <h1 class="invoices-title">Factures</h1>
-          <div class="page-info">
-            <mat-icon class="page-icon">receipt</mat-icon>
-            <span class="page-text">Gestion des factures fournisseurs</span>
-            <span class="page-badge">{{ (hasActiveFiltersFlag ? filteredCount : totalCount) || dataSource.filteredData.length }} facture{{ ((hasActiveFiltersFlag ? filteredCount : totalCount) || dataSource.filteredData.length) > 1 ? 's' : '' }}</span>
-          </div>
+      <div class="page-header">
+        <h1 class="text-3xl font-bold mb-2">Factures</h1>
+        <div class="page-info">
+          <mat-icon class="page-icon">receipt_long</mat-icon>
+          <span class="page-text">Gestion des factures</span>
+          <span class="page-badge">{{ (hasActiveFiltersFlag ? filteredCount : totalCount) || dataSource.filteredData.length }} facture{{ ((hasActiveFiltersFlag ? filteredCount : totalCount) || dataSource.filteredData.length) > 1 ? 's' : '' }}</span>
         </div>
       </div>
 
@@ -273,10 +271,8 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
       margin: 0 auto;
     }
 
-    .invoices-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+    .page-header {
+      text-align: left;
       margin-bottom: 2rem;
       padding: 1.5rem;
       background: var(--surface-color);
@@ -285,7 +281,7 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
       border: 1px solid var(--border-light);
     }
 
-    .invoices-title {
+    .page-header h1 {
       font-size: 2rem;
       font-weight: 600;
       color: var(--text-primary);
@@ -295,6 +291,8 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
     .page-info {
       display: flex;
       align-items: center;
+      justify-content: flex-start;
+      width: 100%;
       gap: 0.5rem;
       font-size: 0.875rem;
       color: var(--text-secondary);

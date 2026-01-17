@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { SuppliersListComponent } from './suppliers-list/suppliers-list.component';
 import { SupplierFormComponent } from './supplier-form/supplier-form.component';
+import { SupplierViewComponent } from './supplier-view/supplier-view.component';
 import { AuthGuard } from '../../core/guards/auth.guard';
 import { RoleGuard } from '../../core/guards/role.guard';
 import { UserRole } from '../../shared/models/auth.model';
@@ -27,6 +28,15 @@ const routes: Routes = [
   },
   {
     path: ':id',
+    component: SupplierViewComponent,
+    canActivate: [AuthGuard, RoleGuard],
+    data: { 
+      roles: [UserRole.ADMIN, UserRole.PHARMACIEN, UserRole.COMPTABLE],
+      title: 'Détails fournisseur - Pharmacie Manager'
+    }
+  },
+  {
+    path: ':id/edit',
     component: SupplierFormComponent,
     canActivate: [AuthGuard, RoleGuard],
     data: { 

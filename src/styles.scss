@@ -99,8 +99,7 @@ html, body {
 }
 
 /* Styles pour les notifications MatSnackBar */
-.mat-mdc-snack-bar-container {
-  &.success-snackbar {
+.mat-mdc-snack-bar-container .success-snackbar {
     background-color: #16A34A !important;
     color: white !important;
     border-radius: 12px !important;
@@ -108,29 +107,29 @@ html, body {
     border-left: 4px solid #10b981 !important;
     backdrop-filter: blur(10px) !important;
     margin-top: 16px !important;
-    
-    .mdc-snackbar__label {
-      color: white !important;
-      font-weight: 600 !important;
-      font-size: 0.875rem !important;
-      letter-spacing: 0.025em !important;
-    }
-    
-    .mdc-button {
-      color: white !important;
-      font-weight: 600 !important;
-      background-color: rgba(255, 255, 255, 0.2) !important;
-      border-radius: 6px !important;
-      padding: 4px 12px !important;
-      transition: all 0.2s ease !important;
-      
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.3) !important;
-      }
-    }
-  }
-  
-  &.error-snackbar {
+}
+
+.mat-mdc-snack-bar-container .success-snackbar .mdc-snackbar__label {
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  letter-spacing: 0.025em !important;
+}
+
+.mat-mdc-snack-bar-container .success-snackbar .mdc-button {
+  color: white !important;
+  font-weight: 600 !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 6px !important;
+  padding: 4px 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.mat-mdc-snack-bar-container .success-snackbar .mdc-button:hover {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.mat-mdc-snack-bar-container .error-snackbar {
     background-color: #DC2626 !important;
     color: white !important;
     border-radius: 12px !important;
@@ -138,29 +137,29 @@ html, body {
     border-left: 4px solid #b91c1c !important;
     backdrop-filter: blur(10px) !important;
     margin-top: 16px !important;
-    
-    .mdc-snackbar__label {
-      color: white !important;
-      font-weight: 600 !important;
-      font-size: 0.875rem !important;
-      letter-spacing: 0.025em !important;
-    }
-    
-    .mdc-button {
-      color: white !important;
-      font-weight: 600 !important;
-      background-color: rgba(255, 255, 255, 0.2) !important;
-      border-radius: 6px !important;
-      padding: 4px 12px !important;
-      transition: all 0.2s ease !important;
-      
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.3) !important;
-      }
-    }
-  }
-  
-  &.info-snackbar {
+}
+
+.mat-mdc-snack-bar-container .error-snackbar .mdc-snackbar__label {
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  letter-spacing: 0.025em !important;
+}
+
+.mat-mdc-snack-bar-container .error-snackbar .mdc-button {
+  color: white !important;
+  font-weight: 600 !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 6px !important;
+  padding: 4px 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.mat-mdc-snack-bar-container .error-snackbar .mdc-button:hover {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.mat-mdc-snack-bar-container .info-snackbar {
     background-color: #2563EB !important;
     color: white !important;
     border-radius: 12px !important;
@@ -168,37 +167,34 @@ html, body {
     border-left: 4px solid #1d4ed8 !important;
     backdrop-filter: blur(10px) !important;
     margin-top: 16px !important;
-    
-    .mdc-snackbar__label {
-      color: white !important;
-      font-weight: 600 !important;
-      font-size: 0.875rem !important;
-      letter-spacing: 0.025em !important;
-    }
-    
-    .mdc-button {
-      color: white !important;
-      font-weight: 600 !important;
-      background-color: rgba(255, 255, 255, 0.2) !important;
-      border-radius: 6px !important;
-      padding: 4px 12px !important;
-      transition: all 0.2s ease !important;
-      
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.3) !important;
-      }
-    }
-  }
+}
+
+.mat-mdc-snack-bar-container .info-snackbar .mdc-snackbar__label {
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  letter-spacing: 0.025em !important;
+}
+
+.mat-mdc-snack-bar-container .info-snackbar .mdc-button {
+  color: white !important;
+  font-weight: 600 !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 6px !important;
+  padding: 4px 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.mat-mdc-snack-bar-container .info-snackbar .mdc-button:hover {
+  background-color: rgba(255, 255, 255, 0.3) !important;
 }
 
 /* Forcer les styles sur tous les snackbars */
 .mdc-snackbar {
-  background-color: inherit !important;
   border-radius: 12px !important;
 }
 
 .mdc-snackbar__surface {
-  background-color: inherit !important;
   border-radius: 12px !important;
 }
 

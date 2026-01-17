@@ -38,7 +38,10 @@ import { PdfService } from '../../core/services/pdf.service';
     <div class="p-6">
       <div class="page-header">
         <h1 class="text-3xl font-bold mb-2">Rapports financiers</h1>
-        <p class="text-blue-100">Génération de rapports et analyses</p>
+        <div class="page-info">
+          <mat-icon class="page-icon">assessment</mat-icon>
+          <span class="page-text">Génération de rapports et analyses</span>
+        </div>
       </div>
 
       <mat-card class="mb-6">

@@ -34,7 +34,10 @@ import { PdfService } from '../../../core/services/pdf.service';
     <div class="p-6">
       <div class="page-header">
         <h1 class="text-3xl font-bold mb-2">Détails Facture</h1>
-        <p class="text-blue-100">Informations détaillées de la facture</p>
+        <div class="page-info">
+          <mat-icon class="page-icon">receipt_long</mat-icon>
+          <span class="page-text">Informations détaillées de la facture</span>
+        </div>
       </div>
 
       <div class="max-w-4xl mx-auto">

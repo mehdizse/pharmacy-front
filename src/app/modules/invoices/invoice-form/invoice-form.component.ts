@@ -49,9 +49,10 @@ import { DateService } from '../../../core/services/date.service';
         <h1 class="text-3xl font-bold mb-2">
           {{ isEditMode ? 'Modifier' : 'Nouvelle' }} facture
         </h1>
-        <p class="text-blue-100">
-          {{ isEditMode ? 'Modifier les informations' : 'Ajouter une nouvelle facture' }}
-        </p>
+        <div class="page-info">
+          <mat-icon class="page-icon">{{ isEditMode ? 'edit' : 'receipt_long' }}</mat-icon>
+          <span class="page-text">{{ isEditMode ? 'Modifier les informations de la facture' : 'Ajouter une nouvelle facture' }}</span>
+        </div>
       </div>
 
       <mat-card class="max-w-4xl mx-auto">
@@ -172,7 +173,8 @@ import { DateService } from '../../../core/services/date.service';
                 <button mat-stroked-button 
                         type="button" 
                         (click)="onSubmitAndNew()"
-                        [disabled]="invoiceForm.invalid || isLoading">
+                        [disabled]="invoiceForm.invalid || isLoading"
+                        *ngIf="!isEditMode">
                   Enregistrer et nouveau
                 </button>
                 <button mat-raised-button 
